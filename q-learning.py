@@ -31,7 +31,6 @@ def q_learning(env, num_episodes, eps = 0.4, alpha = 0.1, gamma = 0.8):
         # Reset the environment and pick the first action
         state = env.reset()
 
-
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
             #env.render()
@@ -42,10 +41,8 @@ def q_learning(env, num_episodes, eps = 0.4, alpha = 0.1, gamma = 0.8):
             else:
                 action = np.argmax(q_table[state,:])
 
-
             next_state, reward, done, _ = env.step(action)
-            q_table[state, action] = (1-alpha)*q_table[state, action]+alpha*(reward + gamma * np.max(q_table[next_state:]))
-
+            q_table[state, action] = (1-alpha)*q_table[state, action]+alpha*(reward + gamma * np.max(q_table[next_state, :]))
 
             # Update statistics
             stats.episode_rewards[i_episode] += reward
@@ -58,6 +55,7 @@ def q_learning(env, num_episodes, eps = 0.4, alpha = 0.1, gamma = 0.8):
 
     return stats, q_table
 
+
 def test_policy(env, q_table):
 
     state = env.reset()
@@ -66,7 +64,7 @@ def test_policy(env, q_table):
 
     for t in itertools.count():
         # WE CAN PRINT ENVIRONMENT STATE
-        #env.render()
+        env.render()
 
         # Take a step
         action = np.argmax(q_table[state, :])
@@ -88,9 +86,8 @@ matplotlib.style.use('ggplot')
 
 env = MazeWorld(maze=generate_maze_please())
 # make 50 iterations
-stats, q_table = q_learning(env, 30000)
-env._render()
-print(q_table)
+stats, q_table = q_learning(env, 20000)
 plotting.plot_episode_stats(stats)
-#s, t = test_policy(env, q_table)
-#print(s, t)
+
+s, t = test_policy(env, q_table)
+print(s, t)
