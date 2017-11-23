@@ -6,10 +6,10 @@ import pandas as pd
 import sys
 
 from collections import defaultdict
-from grid_maze_env import MazeWorld
-import plotting
+from environments.maze_world_env import MazeWorld
+from lib import plotting
 
-from gride_generator import generate_maze, generate_pattern, prepare_maze, generate_maze_please
+from environments.grid_maze_generator import generate_maze, generate_pattern, prepare_maze, generate_maze_please
 
 
 def random_policy(env, num_episodes, ):
@@ -29,7 +29,7 @@ def random_policy(env, num_episodes, ):
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
-            env.render()
+            # env.render()
 
             # Take a step
             action = np.random.choice(env.action_space.n, size=1)[0]
