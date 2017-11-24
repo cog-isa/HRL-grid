@@ -18,7 +18,7 @@ def generate_pattern(pattern_id):
         for j in range(5):
             if pattern[i][j] == 1:
                 continue
-            if pattern_id & bit_cnt > 0:
+            if (pattern_id & bit_cnt) > 0:
                 pattern[i][j] = 1
             bit_cnt *= 2
     return pattern
