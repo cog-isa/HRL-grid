@@ -3,7 +3,7 @@
 
 The project is designed to simulate hierarchical reinforcement learning algorithms. The environment `environment/maze_world_env.py` is a labyrinth of repeating patterns.
 
-```python
+```
  O  O  O  O  O  O  O  O  O  O  O  O  O  O  O 
  O  .  .  .  O  O  .  .  .  O  O  .  S  .  O 
  O  .  O  .  .  .  .  O  .  .  .  .  O  .  O 
@@ -38,7 +38,7 @@ If, after performing an action, the agent has moved to an empty cell - the rewar
 If the agent is in the terminal state `F` - the reward is `+100`.
 
 In the file `grid_maze_generator.py` there is methods for automatic generation of labyrinths. Each labyrinth consists of patterns:
-```python
+```
  O  O  .  O  O   
  O  .  .  .  O  
  .  .  O  .  .
@@ -75,7 +75,8 @@ matplotlib
 ## Authors
 
 * **Alexander Panov** - *Project management* - [grafft](https://github.com/grafft)
-* **Alexey Skrynnik** - *Initial work* - [Tviskaron](https://github.com/tviskaron)
+* **Alexey Skrynnik** - *Initial work.* *Hierarchical RL on HAM* - [Tviskaron](https://github.com/tviskaron)
+* **Vadim Kuzmin** - *Hierarchical RL on Options* - [vtkuzmin](https://github.com/vtkuzmin)
 
 
 ## License
