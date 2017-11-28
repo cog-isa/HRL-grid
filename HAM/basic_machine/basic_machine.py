@@ -1,3 +1,9 @@
+UP = 0
+RIGHT = 1
+DOWN = 2
+LEFT = 3
+
+
 def start(info):
     return choice(info)
 
@@ -9,25 +15,25 @@ def choice(info):
 
 
 def action_right(info):
-    action = 0
+    action = RIGHT
     info["apply_action"](info, action)
     stop(info)
 
 
 def action_down(info):
-    action = 1
+    action = DOWN
     info["apply_action"](info, action)
     stop(info)
 
 
 def action_up(info):
-    action = 2
+    action = UP
     info["apply_action"](info, action)
     stop(info)
 
 
 def action_left(info):
-    action = 3
+    action = LEFT
     info["apply_action"](info, action)
     stop(info)
 
