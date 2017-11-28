@@ -29,7 +29,7 @@ def random_policy(env, num_episodes, ):
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
-            #env.render()
+            # env.render()
 
             # Take a step
             action = np.random.choice(env.action_space.n, size=1)[0]
@@ -45,8 +45,6 @@ def random_policy(env, num_episodes, ):
             state = next_state
 
     return stats
-
-
 
 
 matplotlib.style.use('ggplot')
