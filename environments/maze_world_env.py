@@ -20,7 +20,7 @@ class MazeWorld(discrete.DiscreteEnv):
 
         P = {}
 
-        state_id = 0
+        state_id = 1
         maze_size_x = len(maze)
         maze_size_y = len(maze[0])
         state_id_table = np.zeros(shape=(maze_size_x, maze_size_y), dtype=np.int64)
@@ -57,12 +57,14 @@ class MazeWorld(discrete.DiscreteEnv):
                         reward = -5
                         new_state = state_id_table[i][j]
                     # if it is the terminal state
-                    if maze[x][y] == 3:
+                    elif maze[x][y] == 3:
                         reward = 100
                         new_state = state_id_table[i][j]
                     # if the starting or empty cell
-                    if maze[x][y] == 0 or maze[x][y] == 2:
+                    elif maze[x][y] == 0 or maze[x][y] == 2:
                         reward = -1
+                    else:
+                        raise ValueError
                     P[state_id][move] = [(1.0, new_state, reward, maze[x][y] == 3)]
 
         isd = np.zeros(max_state_id)
