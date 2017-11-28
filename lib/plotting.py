@@ -83,16 +83,16 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
         plt.close(fig2)
     else:
         plt.show(fig2)
-
+    pass
     # Plot time steps and episode number
-    fig3 = plt.figure(figsize=(10, 5))
-    plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
-    plt.xlabel("Time Steps")
-    plt.ylabel("Episode")
-    plt.title("Episode per time step")
-    if noshow:
-        plt.close(fig3)
-    else:
-        plt.show(fig3)
-
-    return fig1, fig2, fig3
+    # fig3 = plt.figure(figsize=(10, 5))
+    # plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
+    # plt.xlabel("Time Steps")
+    # plt.ylabel("Episode")
+    # plt.title("Episode per time step")
+    # if noshow:
+    #     plt.close(fig3)
+    # else:
+    #     plt.show(fig3)
+    #
+    # return fig1, fig2, fig3
