@@ -108,8 +108,8 @@ def place_start_finish(maze):
     return maze
 
 
-def generate_maze_please():
-    t = place_start_finish(prepare_maze(generate_maze(blocks=[generate_pattern(64)], size_x=3, size_y=4)))
+def generate_maze_please(size_x=3, size_y=4):
+    t = place_start_finish(prepare_maze(generate_maze(blocks=[generate_pattern(64)], size_x=size_x, size_y=size_y)))
     return t
 
 
