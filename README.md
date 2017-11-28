@@ -26,10 +26,16 @@ The project is designed to simulate hierarchical reinforcement learning algorith
  O  O  O  O  O  O  O  O  O  O  O  O  O  O  O 
 ```
 
-`O` -- is an obstacle
-`S` -- start
-`F` -- finish
-`-` -- free cell
+
+
+
+
+>  `O` -- is an obstacle 
+ `S` -- start 
+ `F` -- finish 
+ `-` -- free cell 
+ `x` -- agent position
+
 
 
 The agent can perform four actions to move: up, down, left and right.
@@ -70,6 +76,7 @@ gym
 scipy
 pandas
 matplotlib
+numpy
 ```
 
 ## Authors
