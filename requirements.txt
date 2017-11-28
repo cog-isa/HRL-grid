@@ -2,3 +2,4 @@ gym
 scipy
 pandas
 matplotlib
+numpy
