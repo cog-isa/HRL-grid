@@ -58,7 +58,6 @@ def prepare_maze(maze):
 
 def bfs(start_x, start_y, maze):
     maze_size_x, maze_size_y = len(maze), len(maze[0])
-    maze[maze > 0] = -1
 
     # max value
     MX = (maze_size_x + 10) * (maze_size_y + 10)
@@ -79,34 +78,34 @@ def bfs(start_x, start_y, maze):
                 if maze[nx][ny] > maze[x][y]:
                     q.put((nx, ny))
                     maze[nx][ny] = maze[x][y] + 1
-    maze[maze==MX] = -1
-    max_dist = int(np.max(maze))
-    for i in range(maze_size_x):
-        for j in range(maze_size_y):
-            if maze[i][j] == max_dist:
-                return {"maze_bfs": maze, "max_dist_x_y": (i, j)}
-    raise ValueError("no max value")
+    maze[maze == MX] = 0
 
 
 def place_start_finish(maze):
-    # choose any unoccupied point
-    # find the point most distant from it point(1)
-    # find the distant remote, from the most distant point(2)
-    # mark them as start(1) and finish(2)
-    maze_size_x, maze_size_y = len(maze), len(maze[0])
-    a = (0, 0)
+    mz = deepcopy(maze)
+    maze_size_x, maze_size_y = len(mz), len(mz[0])
+    mz[mz > 0] = -1
     for i in range(maze_size_x):
         for j in range(maze_size_y):
-            if maze[i][j] == 0:
-                a = (i, j)
-                break
-    assert (0 < a[0] < maze_size_x - 1 and 0 < a[1] < maze_size_y - 1)
+            if mz[i][j] == 0:
+                bfs(start_x=i, start_y=j, maze=mz)
+    max_dist = int(np.max(mz))
 
-    start_x, start_y = bfs(a[0], a[1], deepcopy(maze))["max_dist_x_y"]
-    finish_x, finish_y = bfs(start_x, start_y, deepcopy(maze))["max_dist_x_y"]
-    maze[start_x, start_y] = 2
-    maze[finish_x, finish_y] = 3
-    return maze
+    for i in range(maze_size_x):
+        for j in range(maze_size_y):
+            if mz[i][j] == max_dist:
+                start_x, start_y = i, j
+                mz[mz > 0] = 0
+                bfs(start_x=start_x, start_y=start_y, maze=mz)
+                max_dist = int(np.max(mz))
+                for ii in range(maze_size_x):
+                    for jj in range(maze_size_y):
+                        if mz[ii][jj] == max_dist:
+                            finish_x, finish_y = ii, jj
+                            maze[start_x, start_y] = 2
+                            maze[finish_x, finish_y] = 3
+                            return maze
+    raise ValueError
 
 
 def generate_maze_please(size_x=3, size_y=4):
