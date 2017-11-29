@@ -79,6 +79,7 @@ def bfs(start_x, start_y, maze):
                 if maze[nx][ny] > maze[x][y]:
                     q.put((nx, ny))
                     maze[nx][ny] = maze[x][y] + 1
+    maze[maze==MX] = -1
     max_dist = int(np.max(maze))
     for i in range(maze_size_x):
         for j in range(maze_size_y):
