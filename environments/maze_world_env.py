@@ -14,7 +14,7 @@ MOVES_X_Y = {UP: (0, -1), RIGHT: (1, 0), DOWN: (0, 1), LEFT: (-1, 0)}
 class MazeWorld(discrete.DiscreteEnv):
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, maze):
+    def __init__(self, maze, finish_reward=100, wall_minus_reward=-5, action_minus_reward=-1):
 
         number_of_actions = 4
 
@@ -54,15 +54,15 @@ class MazeWorld(discrete.DiscreteEnv):
                     # if we try to go to the wall
                     reward = 0
                     if maze[x][y] == 1:
-                        reward = -5
+                        reward = wall_minus_reward
                         new_state = state_id_table[i][j]
                     # if it is the terminal state
                     elif maze[x][y] == 3:
-                        reward = 100
+                        reward = finish_reward
                         new_state = state_id_table[i][j]
                     # if the starting or empty cell
                     elif maze[x][y] == 0 or maze[x][y] == 2:
-                        reward = -1
+                        reward = action_minus_reward
                     else:
                         raise ValueError
                     P[state_id][move] = [(1.0, new_state, reward, maze[x][y] == 3)]
