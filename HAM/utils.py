@@ -44,7 +44,7 @@ class HAM:
         info["total_reward"] += reward
         info["actions_cnt"] += 1
 
-        #debug
+        # debug
         # if info["actions_cnt"] > 100000:
         #     env.render()
         if done:
@@ -53,6 +53,14 @@ class HAM:
     @staticmethod
     def who_a_mi():
         return sys._getframe(1).f_code.co_name
+
+    @staticmethod
+    def call(info, machine):
+        m = machine()
+        old_prefix = info["prefix_machine"]
+        info["prefix_machine"] += m.__class__.__name__
+        m.start(info)
+        info["prefix_machine"] = old_prefix
 
 
 def run_machine(info, machine):
@@ -92,6 +100,7 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
                 "DIS_FACTOR": discount_factor,
                 "ALPHA": alpha,
                 "stats": statistics,
+                "prefix_machine": "",
                 }
 
         info = run_machine(info, machine())
