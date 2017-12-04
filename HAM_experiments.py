@@ -67,11 +67,11 @@ def experiment_02():
 
 
 def experiment_03():
-    env = MazeWorld(maze=input_01())
+    env = MazeWorld(maze=input_01(), finish_reward=1000000)
     env.render()
     params = {
         "env": env,
-        "num_episodes": 100,
+        "num_episodes": 300,
         "machine": l2_machine,
         "alpha": 0.1,
         "epsilon": 0.1,
@@ -79,17 +79,19 @@ def experiment_03():
     }
     Q, stats = ham_learning(**params)
 
-    env = MazeWorld(maze=input_01())
+    env = MazeWorld(maze=input_01(), finish_reward=1000000)
     env.render()
     params = {
         "env": env,
-        "num_episodes": 100,
+        "num_episodes": 400,
         "machine": BasicMachine,
         "alpha": 0.2,
         "epsilon": 0.2,
         "discount_factor": 1,
     }
     Q1, stats1 = ham_learning(**params)
+
+
     plotting.plot_multi_test(curve_to_draw=[stats.episode_rewards, stats1.episode_rewards])
 
 
@@ -134,4 +136,4 @@ def experiment_04():
 
 
 if __name__ == "__main__":
-    experiment_04()
+    experiment_03()
