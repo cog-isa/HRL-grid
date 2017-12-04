@@ -1,7 +1,7 @@
 from environments.maze_world_env import MazeWorld
 from lib import plotting
 from HAM.utils import ham_learning
-from HAM.ham_machine import *
+from HAM.machines import *
 from environments.grid_maze_generator import *
 
 base_patterns = [2 ** 4 + 2 ** 8, 1 + 2 ** 12, 0]
