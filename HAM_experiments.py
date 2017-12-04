@@ -8,25 +8,25 @@ base_patterns = [2 ** 4 + 2 ** 8, 1 + 2 ** 12, 0]
 x = list(map(generate_pattern, base_patterns))
 
 
-def test1():
+def input_01():
     mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=15)
     mz_level2 = generate_maze([mz_level1], size_x=3, size_y=3)
     return place_start_finish(prepare_maze(mz_level2))
 
 
-def test2():
+def input_02():
     mz_level1 = generate_maze(deepcopy(x), size_x=4, size_y=4, seed=95)
     mz_level2 = generate_maze([mz_level1], size_x=4, size_y=4, seed=1)
     return place_start_finish(prepare_maze(mz_level2))
 
 
-def test3():
+def input_03():
     mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=65)
     mz_level2 = generate_maze([mz_level1], size_x=3, size_y=3, seed=1)
     place_start_finish(prepare_maze(mz_level2))
 
 
-def test4():
+def input_04():
     mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=95)
     mz_level2 = generate_maze([mz_level1], size_x=3, size_y=3, seed=1)
     return place_start_finish(prepare_maze(mz_level2))
@@ -35,7 +35,7 @@ def test4():
 def experiment_01():
     # in this experiment, the agent is looping on the 500th iteration
     # but with discount_factor = 0.9 - all ok
-    env = MazeWorld(maze=test1())
+    env = MazeWorld(maze=input_01())
     env.render()
     params = {
         "env": env,
@@ -52,7 +52,7 @@ def experiment_01():
 def experiment_02():
     # in this experiment, the agent is looping on the 500th iteration
     # but with discount_factor = 0.9 - all ok
-    env = MazeWorld(maze=test1())
+    env = MazeWorld(maze=input_01())
     env.render()
     params = {
         "env": env,
@@ -67,7 +67,7 @@ def experiment_02():
 
 
 def experiment_03():
-    env = MazeWorld(maze=test1())
+    env = MazeWorld(maze=input_01())
     env.render()
     params = {
         "env": env,
@@ -79,7 +79,7 @@ def experiment_03():
     }
     Q, stats = ham_learning(**params)
 
-    env = MazeWorld(maze=test1())
+    env = MazeWorld(maze=input_01())
     env.render()
     params = {
         "env": env,
@@ -94,7 +94,7 @@ def experiment_03():
 
 
 def experiment_04():
-    env = MazeWorld(maze=test1(), finish_reward=1000)
+    env = MazeWorld(maze=input_01(), finish_reward=1000)
     env.render()
     params = {
         "env": env,
@@ -106,7 +106,7 @@ def experiment_04():
     }
     Q, stats = ham_learning(**params)
 
-    env = MazeWorld(maze=test1(), finish_reward=1000)
+    env = MazeWorld(maze=input_01(), finish_reward=1000)
     env.render()
     params = {
         "env": env,
@@ -118,7 +118,7 @@ def experiment_04():
     }
     Q1, stats1 = ham_learning(**params)
 
-    env = MazeWorld(maze=test1(), finish_reward=1000)
+    env = MazeWorld(maze=input_01(), finish_reward=1000)
     env.render()
     params = {
         "env": env,
