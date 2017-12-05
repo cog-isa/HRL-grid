@@ -75,7 +75,7 @@ def bfs(start_x, start_y, maze):
                 nx, ny = x + dx, y + dy
                 if maze[nx][ny] == -1:
                     continue
-                if maze[nx][ny] > maze[x][y]:
+                if maze[nx][ny] == MX:
                     q.put((nx, ny))
                     maze[nx][ny] = maze[x][y] + 1
     maze[maze == MX] = 0
