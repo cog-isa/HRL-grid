@@ -85,16 +85,16 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
         plt.show(fig2)
 
 
-def plot_multi_test(curve_to_draw=None, smoothing_window=10, noshow=False, ):
-    # Plot the episode reward over time
-    fig2 = plt.figure(figsize=(10, 5))
-    for i in curve_to_draw:
-        rewards_smoothed = pd.Series(i).rolling(smoothing_window, min_periods=smoothing_window).mean()
-        plt.plot(rewards_smoothed)
-    plt.xlabel("Episode")
-    plt.ylabel("Episode Reward (Smoothed)")
-    plt.title("Episode Reward over Time (Smoothed over window size {})".format(smoothing_window))
-    if noshow:
-        plt.close(fig2)
-    else:
-        plt.show(fig2)
+def plot_multi_test(curve_to_draw=None, smoothing_window=10, xlabel="X", ylabel="Y", labels=None):
+    fig2 = plt.figure(figsize=(20, 10))
+
+    t = []
+    for index, elem in enumerate(curve_to_draw):
+        rewards_smoothed = pd.Series(elem).rolling(smoothing_window, min_periods=smoothing_window).mean()
+        p, = plt.plot(rewards_smoothed)
+        t.append(p)
+    plt.legend(t, labels) if labels else plt.legend(t)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    plt.show(fig2)
