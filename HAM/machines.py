@@ -1,5 +1,3 @@
-import sys
-import numpy as np
 from HAM.utils import HAM
 
 UP = 0
@@ -41,7 +39,7 @@ class BasicMachine(HAM):
         pass
 
 
-class l1_machine(HAM):
+class L1Machine(HAM):
     def start(self, info):
         return self.choice(info)
 
@@ -99,12 +97,12 @@ class l1_machine(HAM):
         pass
 
 
-class l2_machine(HAM):
+class L2Move5(HAM):
     def start(self, info):
         return self.choice(info)
 
     def choice(self, info):
-        choices = [self.call_basic, self.call_left,  self.call_up]
+        choices = [self.call_basic, self.call_left, self.call_up, self.call_right, self.call_down]
         name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
         choices[self.choice_update(info, choices, name)](info)
 
@@ -122,6 +120,34 @@ class l2_machine(HAM):
 
     def call_down(self, info):
         self.call(info, Down5)
+
+    def stop(self, info):
+        pass
+
+
+class L2Move3(HAM):
+    def start(self, info):
+        return self.choice(info)
+
+    def choice(self, info):
+        choices = [self.call_basic, self.call_up3, self.call_down3, self.call_left3, self.call_right3]
+        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        choices[self.choice_update(info, choices, name)](info)
+
+    def call_basic(self, info):
+        self.call(info, BasicMachine)
+
+    def call_left3(self, info):
+        self.call(info, Left3)
+
+    def call_right3(self, info):
+        self.call(info, Right3)
+
+    def call_up3(self, info):
+        self.call(info, Up3)
+
+    def call_down3(self, info):
+        self.call(info, Down3)
 
     def stop(self, info):
         pass
@@ -239,6 +265,98 @@ class Down5(HAM):
         action = DOWN
         self.apply_action(info, action)
         self.l3(info)
+
+    def l3(self, info):
+        action = DOWN
+        self.apply_action(info, action)
+        self.l4(info)
+
+    def l4(self, info):
+        action = DOWN
+        self.apply_action(info, action)
+        self.l5(info)
+
+    def l5(self, info):
+        action = DOWN
+        self.apply_action(info, action)
+        self.stop(info)
+
+    def stop(self, info):
+        pass
+
+
+class Left3(HAM):
+    def start(self, info):
+        return self.l3(info)
+
+    def l3(self, info):
+        action = LEFT
+        self.apply_action(info, action)
+        self.l4(info)
+
+    def l4(self, info):
+        action = LEFT
+        self.apply_action(info, action)
+        self.l5(info)
+
+    def l5(self, info):
+        action = LEFT
+        self.apply_action(info, action)
+        self.stop(info)
+
+    def stop(self, info):
+        pass
+
+
+class Right3(HAM):
+    def start(self, info):
+        return self.l3(info)
+
+    def l3(self, info):
+        action = RIGHT
+        self.apply_action(info, action)
+        self.l4(info)
+
+    def l4(self, info):
+        action = RIGHT
+        self.apply_action(info, action)
+        self.l5(info)
+
+    def l5(self, info):
+        action = RIGHT
+        self.apply_action(info, action)
+        self.stop(info)
+
+    def stop(self, info):
+        pass
+
+
+class Up3(HAM):
+    def start(self, info):
+        return self.l3(info)
+
+    def l3(self, info):
+        action = UP
+        self.apply_action(info, action)
+        self.l4(info)
+
+    def l4(self, info):
+        action = UP
+        self.apply_action(info, action)
+        self.l5(info)
+
+    def l5(self, info):
+        action = UP
+        self.apply_action(info, action)
+        self.stop(info)
+
+    def stop(self, info):
+        pass
+
+
+class Down3(HAM):
+    def start(self, info):
+        return self.l3(info)
 
     def l3(self, info):
         action = DOWN
