@@ -36,6 +36,9 @@ class HAM:
 
     @staticmethod
     def apply_action(info, action):
+        if info["done"]:
+            return
+
         env = info["env"]
         next_state, reward, done, _ = env.step(action)
         info["r"] += reward
@@ -69,8 +72,9 @@ def run_machine(info, machine):
     return info
 
 
-def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None):
-    q = defaultdict(lambda: defaultdict(lambda: 0))
+def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None):
+    if q is None:
+        q = defaultdict(lambda: defaultdict(lambda: 0))
     assert (machine is not None)
 
     # Keeps track of useful statistics
@@ -80,9 +84,9 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
 
     # The policy we're following
 
-    for i_episode in range(num_episodes):
-        if (i_episode + 1) % 100 == 0:
-            print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
+    for i_episode in range(1, num_episodes + 1):
+        if i_episode % 10 == 0:
+            print("\r{machine} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
             sys.stdout.flush()
 
         # Reset the environment and pick the first action
@@ -104,7 +108,7 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
                 }
 
         info = run_machine(info, machine())
-        statistics.episode_lengths[i_episode] = info["actions_cnt"]
-        statistics.episode_rewards[i_episode] += info["total_reward"]
+        statistics.episode_lengths[i_episode - 1] = info["actions_cnt"]
+        statistics.episode_rewards[i_episode - 1] += info["total_reward"]
 
     return q, statistics
