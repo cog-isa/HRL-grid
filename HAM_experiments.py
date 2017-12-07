@@ -35,6 +35,12 @@ def input_04():
     return place_start_finish(prepare_maze(mz_level2))
 
 
+def input_05():
+    mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=15)
+    mz_level2 = generate_maze([mz_level1], size_x=2, size_y=2)
+    return place_start_finish(prepare_maze(mz_level2))
+
+
 def experiment_01():
     # in this experiment, the agent is looping on the 500th iteration
     # but with discount_factor = 0.9 - all ok
@@ -258,7 +264,7 @@ def experiment_07():
 def experiment_08():
     finish_reward = 10000
     episode_max_length = 500
-    maze = input_01()
+    maze = input_05()
     q1_result = []
     q2_result = []
     q3_result = []
@@ -268,7 +274,7 @@ def experiment_08():
 
     env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
                                  episode_max_length=episode_max_length)
-    ep_size = 60500
+    ep_size = 5000
     for i in range(ep_size):
         print("\r episode {i}/{ep_size}.".format(**locals()), end="")
         sys.stdout.flush()
@@ -280,18 +286,16 @@ def experiment_08():
         _, stats1 = ham_learning(**m1)
         _, stats2 = ham_learning(**m2)
         _, stats3 = ham_learning(**m3)
-        if (i + 1) % 100 == 0:
-            pass
-            m1 = {"env": env, "num_episodes": 1, "machine": L2Move3, "q": Q1, "alpha": 0, "epsilon": 0}
-            m2 = {"env": env, "num_episodes": 1, "machine": L2Move5, "q": Q2, "alpha": 0, "epsilon": 0}
-            m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3, "epsilon": 0,
-                  "alpha": 0}
-            _, stats1 = ham_learning(**m1)
-            _, stats2 = ham_learning(**m2)
-            _, stats3 = ham_learning(**m3)
-            q1_result.append(stats1.episode_rewards[0])
-            q2_result.append(stats2.episode_rewards[0])
-            q3_result.append(stats3.episode_rewards[0])
+        m1 = {"env": env, "num_episodes": 1, "machine": L2Move3, "q": Q1, "alpha": 0, "epsilon": 0}
+        m2 = {"env": env, "num_episodes": 1, "machine": L2Move5, "q": Q2, "alpha": 0, "epsilon": 0}
+        m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3, "epsilon": 0,
+              "alpha": 0}
+        _, stats1 = ham_learning(**m1)
+        _, stats2 = ham_learning(**m2)
+        _, stats3 = ham_learning(**m3)
+        q1_result.append(stats1.episode_rewards[0])
+        q2_result.append(stats2.episode_rewards[0])
+        q3_result.append(stats3.episode_rewards[0])
 
     m1 = {"machine": L2Move3}
     m2 = {"machine": L2Move5}
