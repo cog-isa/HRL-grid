@@ -309,5 +309,59 @@ def experiment_08():
                              )
 
 
+def experiment_09():
+    finish_reward = 10000
+    episode_max_length = 300
+    maze = input_05()
+    Q1 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q2 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q3 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q4 = defaultdict(lambda: defaultdict(lambda: 0))
+    env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
+                                 episode_max_length=episode_max_length)
+    episodes_count = 10000
+
+    m1 = {"env": env, "num_episodes": episodes_count, "machine": L2Move3, "q": Q1}
+    m2 = {"env": env, "num_episodes": episodes_count, "machine": L2Move5, "q": Q2}
+    m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3}
+    m4 = {"env": env, "num_episodes": episodes_count, "machine": L2Interesting, "q": Q4}
+    _, stats1 = ham_learning(**m1)
+    _, stats2 = ham_learning(**m2)
+    _, stats3 = ham_learning(**m3)
+    _, stats4 = ham_learning(**m4)
+
+    plotting.plot_multi_test(smoothing_window=30,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[stats1.episode_rewards, stats2.episode_rewards, stats3.episode_rewards,
+                                            stats4.episode_rewards],
+                             labels=[m1["machine"], m2["machine"], m3["machine"], m4["machine"]]
+                             )
+
+
+def experiment_10():
+    finish_reward = 10000
+    episode_max_length = 300
+    maze = input_05()
+    Q3 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q4 = defaultdict(lambda: defaultdict(lambda: 0))
+    env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
+                                 episode_max_length=episode_max_length)
+    episodes_count = 3000
+
+    m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3}
+    m4 = {"env": env, "num_episodes": episodes_count, "machine": L2Interesting, "q": Q4}
+    _, stats3 = ham_learning(**m3)
+    _, stats4 = ham_learning(**m4)
+
+    plotting.plot_multi_test(smoothing_window=30,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[stats3.episode_rewards,
+                                            stats4.episode_rewards],
+                             labels=[m3["machine"], m4["machine"]]
+                             )
+
+
 if __name__ == "__main__":
-    experiment_08()
+    experiment_10()
