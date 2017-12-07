@@ -408,3 +408,36 @@ class L2Interesting(HAM):
 
     def stop(self, info):
         pass
+
+
+class L2Interesting3move(HAM):
+    def start(self, info):
+        return self.choice(info)
+
+    def choice(self, info):
+        choices = [self.call_left, self.call_up, self.call_right, self.call_down]
+        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        choices[self.choice_update(info, choices, name)](info)
+
+    def call_left(self, info):
+        self.call(info, Left3)
+        self.call_basic(info)
+
+    def call_right(self, info):
+        self.call(info, Right3)
+        self.call_basic(info)
+
+    def call_down(self, info):
+        self.call(info, Down3)
+        self.call_basic(info)
+
+    def call_up(self, info):
+        self.call(info, Up3)
+        self.call_basic(info)
+
+    def call_basic(self, info):
+        self.call(info, BasicMachine)
+        self.stop(info)
+
+    def stop(self, info):
+        pass
