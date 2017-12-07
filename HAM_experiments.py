@@ -347,7 +347,7 @@ def experiment_10():
     Q4 = defaultdict(lambda: defaultdict(lambda: 0))
     env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
                                  episode_max_length=episode_max_length)
-    episodes_count = 3000
+    episodes_count = 1200
 
     m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3}
     m4 = {"env": env, "num_episodes": episodes_count, "machine": L2Interesting, "q": Q4}
@@ -363,5 +363,75 @@ def experiment_10():
                              )
 
 
+def experiment_11():
+    finish_reward = 10000
+    episode_max_length = 300
+    maze = input_05()
+    Q3 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q4 = defaultdict(lambda: defaultdict(lambda: 0))
+    env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
+                                 episode_max_length=episode_max_length)
+
+    q3_result, q4_result = [], []
+    episodes_count = 2100
+    stats3, stats4 = [], []
+    m3 = {"env": env, "num_episodes": 1, "machine": BasicMachine, "q": Q3}
+    m4 = {"env": env, "num_episodes": 1, "machine": L2Interesting, "q": Q4}
+    for i in range(episodes_count):
+        i_plus = i + 1
+        print("\r episode {i_plus}/{episodes_count}.".format(**locals()), end="")
+        sys.stdout.flush()
+
+        _, stats3 = ham_learning(**m3)
+        _, stats4 = ham_learning(**m4)
+
+        m3t = {"env": env, "num_episodes": 1, "machine": BasicMachine, "q": Q3, "alpha": 0, "epsilon": 0}
+        m4t = {"env": env, "num_episodes": 1, "machine": L2Interesting, "q": Q4, "alpha": 0, "epsilon": 0}
+
+        _, stats3 = ham_learning(**m3t)
+        _, stats4 = ham_learning(**m4t)
+
+        q3_result.append(stats3.episode_rewards[0])
+        q4_result.append(stats4.episode_rewards[0])
+
+    m3 = {"machine": BasicMachine}
+    m4 = {"machine": L2Interesting}
+    plotting.plot_multi_test(smoothing_window=50,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[q3_result, q4_result],
+                             labels=[m3["machine"], m4["machine"]]
+                             )
+
+
+def experiment_12():
+    finish_reward = 10000
+    episode_max_length = 300
+    maze = input_05()
+    Q3 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q4 = defaultdict(lambda: defaultdict(lambda: 0))
+    Q5 = defaultdict(lambda: defaultdict(lambda: 0))
+    env = MazeWorldEpisodeLength(maze=deepcopy(maze), finish_reward=finish_reward,
+                                 episode_max_length=episode_max_length)
+    episodes_count = 1200
+
+    m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachine, "q": Q3}
+    m4 = {"env": env, "num_episodes": episodes_count, "machine": L2Interesting, "q": Q4}
+    m5 = {"env": env, "num_episodes": episodes_count, "machine": L2Interesting3move, "q": Q5}
+
+    _, stats3 = ham_learning(**m3)
+    _, stats4 = ham_learning(**m4)
+    _, stats5 = ham_learning(**m5)
+
+    plotting.plot_multi_test(smoothing_window=30,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[stats3.episode_rewards,
+                                            stats4.episode_rewards,
+                                            stats5.episode_rewards],
+                             labels=[m3["machine"], m4["machine"], m5["machine"]]
+                             )
+
+
 if __name__ == "__main__":
-    experiment_10()
+    experiment_12()
