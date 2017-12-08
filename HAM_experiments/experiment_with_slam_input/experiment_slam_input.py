@@ -11,7 +11,7 @@ def experiment_slam_input():
     img_drawer = ImageDraw.Draw(im)
     block_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 30, 32, 40, 48, 60, 64, 80, 96, 120, 160, 192, 240, 320,
                    480, 960]
-    block_size = block_sizes[6]
+    block_size = block_sizes[3]
     n, m = im.height, im.width
     ss = set()
     for i in range(n):
@@ -57,7 +57,7 @@ def experiment_slam_input():
     env.render()
     params = {
         "env": env,
-        "num_episodes": 500,
+        "num_episodes": 800,
         "machine": L2Interesting,
         "alpha": 0.1,
         "epsilon": 0.1,
