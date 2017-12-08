@@ -47,12 +47,8 @@ class HAM:
         info["total_reward"] += reward
         info["actions_cnt"] += 1
         # try:
-        if "path" in info:
-            # try:
+        if "path" in info and info["path"] is not None:
             info["path"].append(env.get_agent_x_y())
-            # print(info["path"])
-            # except AttributeError:
-            #     pass
         # debug
         # if info["actions_cnt"] > 100000:
         #     env.render()
