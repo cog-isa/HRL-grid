@@ -46,7 +46,13 @@ class HAM:
         info["state"] = next_state
         info["total_reward"] += reward
         info["actions_cnt"] += 1
-
+        # try:
+        if "path" in info:
+            # try:
+            info["path"].append(env.get_agent_x_y())
+            # print(info["path"])
+            # except AttributeError:
+            #     pass
         # debug
         # if info["actions_cnt"] > 100000:
         #     env.render()
@@ -72,7 +78,7 @@ def run_machine(info, machine):
     return info
 
 
-def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None):
+def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None, path=None):
     if q is None:
         q = defaultdict(lambda: defaultdict(lambda: 0))
     assert (machine is not None)
@@ -105,6 +111,7 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
                 "ALPHA": alpha,
                 "stats": statistics,
                 "prefix_machine": "",
+                "path": path
                 }
 
         info = run_machine(info, machine())
