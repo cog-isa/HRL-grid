@@ -228,3 +228,12 @@ class MazeWorldEpisodeLength(discrete.DiscreteEnv):
                         output += " F "
             output += '\n'
         outfile.write(output)
+
+    def get_agent_x_y(self):
+        maze_size_x = len(self._maze)
+        maze_size_y = len(self._maze[0])
+
+        for i in range(maze_size_x):
+            for j in range(maze_size_y):
+                if self.s == self._state_id_table[i][j]:
+                    return i, j
