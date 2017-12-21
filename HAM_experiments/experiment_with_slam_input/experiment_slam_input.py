@@ -1,7 +1,7 @@
 from environments.maze_world_env import MazeWorldEpisodeLength
 from lib import plotting
 from HAM.utils import ham_learning
-from HAM.machines import *
+from HAM.machines_on_grid_maze import *
 from environments.grid_maze_generator import *
 
 
