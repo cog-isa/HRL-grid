@@ -49,9 +49,8 @@ class HAM:
         # try:
         if "path" in info and info["path"] is not None:
             info["path"].append(env.get_agent_x_y())
-        # debug
-        # if info["actions_cnt"] > 100000:
-        #     env.render()
+        if "episode_info" in info and info["episode_info"] is not None:
+            info["episode_info"].append(env.get_current_info())
         if done:
             info["done"] = True
 
@@ -74,7 +73,7 @@ def run_machine(info, machine):
     return info
 
 
-def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None, path=None):
+def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None, path=None, episodes_info=None):
     if q is None:
         q = defaultdict(lambda: defaultdict(lambda: 0))
     assert (machine is not None)
@@ -107,11 +106,14 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
                 "ALPHA": alpha,
                 "stats": statistics,
                 "prefix_machine": "",
-                "path": path
+                "path": path,
+                "episode_info": [],
+                "episodes_info": episodes_info
                 }
 
         info = run_machine(info, machine())
         statistics.episode_lengths[i_episode - 1] = info["actions_cnt"]
         statistics.episode_rewards[i_episode - 1] += info["total_reward"]
-
+        if episodes_info is not None:
+            info["episodes_info"].append(info["episode_info"])
     return q, statistics
