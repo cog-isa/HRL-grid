@@ -2,7 +2,6 @@ import gym
 import numpy as np
 import sys
 from scipy import misc
-from matplotlib import pyplot as plt
 
 from gym import spaces
 
@@ -131,8 +130,6 @@ class ArmEnv(gym.Env):
             cubes_left -= 1
             self._grid[x, y] = 1
 
-        exit(0)
-
         return self._get_obs()
 
     def _render(self, mode='human', close='false'):
@@ -146,18 +143,26 @@ class ArmEnv(gym.Env):
         outfile.write('\n')
 
     def render_to_image(self):
-        # Image size
         n_grid = np.array(self._grid, copy=True)
-
         n_grid[self._arm_x, self._arm_y] = 2
 
-        n_grid = up_scaler(n_grid, 10)
-        size_i = n_grid.shape[0]
-        size_j = n_grid.shape[1]
+        arm_scale = 5
+        n_grid = up_scaler(n_grid, arm_scale)
+        for (x, y), value in np.ndenumerate(n_grid):
+            if value == 2:
+                n_grid[x:x + arm_scale, y:y + arm_scale] = 0
+                n_grid[x:x + arm_scale, y + arm_scale // 2] = 2
+                n_grid[x + arm_scale, y:y + arm_scale] = 2
+                break
+
+        n_grid = up_scaler(n_grid, 20)
+
+        size_i, size_j = n_grid.shape
         channels = 3
 
         # Create an empty image
         img = np.zeros((size_i, size_j, channels), dtype=np.uint8)
+
         # Set the RGB values
         for x in range(img.shape[0]):
             for y in range(img.shape[1]):
@@ -165,17 +170,6 @@ class ArmEnv(gym.Env):
                     img[x][y] = (100, 120, 70)
                 if n_grid[x][y] == 1:
                     img[x][y] = (230, 200, 150)
-        # Display the image
+
         # misc.imshow(img)
-
-        # Save the image
         misc.imsave("image.png", img)
-
-
-if __name__ == "__main__":
-    c = ArmEnv()
-    from random_policy import random_policy
-
-    plt.ion()
-    env = ArmEnv()
-    stats = random_policy(env, 3)
