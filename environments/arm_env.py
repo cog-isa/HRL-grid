@@ -1,7 +1,6 @@
 import gym
 import numpy as np
 import sys
-from scipy import misc
 
 from gym import spaces
 
@@ -42,6 +41,7 @@ class ArmEnv(gym.Env):
 
         self.action_space = spaces.Discrete(6)
         self.observation_space = spaces.Discrete(6)
+        self.grid_to_id = {}
 
     def ok(self, x, y):
         return 0 <= x < self._grid.shape[0] and 0 <= y < self._grid.shape[1]
@@ -54,9 +54,11 @@ class ArmEnv(gym.Env):
         grid[self._arm_x, self._arm_y] = 2
         res = 0
         for x in np.nditer(grid):
-            res = res * 10 + x
+            res = res * 10 + int(x)
         res = res * 10 + self._magnet_toggle
-        return res
+        if res not in self.grid_to_id:
+            self.grid_to_id[res] = len(self.grid_to_id)
+        return self.grid_to_id[res]
 
     def _step(self, a):
 
@@ -142,19 +144,26 @@ class ArmEnv(gym.Env):
         outfile.write(str(out))
         outfile.write('\n')
 
-    def render_to_image(self):
-        n_grid = np.array(self._grid, copy=True)
-        n_grid[self._arm_x, self._arm_y] = 2
-
+    def get_evidence_for_image_render(self):
+        res = np.array(self._grid, copy=True)
         arm_scale = 5
-        n_grid = up_scaler(n_grid, arm_scale)
-        for (x, y), value in np.ndenumerate(n_grid):
+        res[self._arm_x][self._arm_y] = 2
+        res = up_scaler(res, arm_scale)
+        for (x, y), value in np.ndenumerate(res):
             if value == 2:
-                n_grid[x:x + arm_scale, y:y + arm_scale] = 0
-                n_grid[x:x + arm_scale, y + arm_scale // 2] = 2
-                n_grid[x + arm_scale, y:y + arm_scale] = 2
+                res[x:x + arm_scale, y:y + arm_scale] = 0
+                res[x:x + arm_scale, y + arm_scale // 2] = 2
+                res[x + arm_scale - 1, y:y + arm_scale] = 2
                 break
+        if self._magnet_toggle:
+            res[res == 2] = 3
+        return np.array(res, copy=True)
 
+    def get_current_info(self):
+        return self.get_evidence_for_image_render()
+
+    @staticmethod
+    def render_to_image(n_grid):
         n_grid = up_scaler(n_grid, 20)
 
         size_i, size_j = n_grid.shape
@@ -166,10 +175,12 @@ class ArmEnv(gym.Env):
         # Set the RGB values
         for x in range(img.shape[0]):
             for y in range(img.shape[1]):
-                if n_grid[x][y] == 2:
-                    img[x][y] = (100, 120, 70)
                 if n_grid[x][y] == 1:
                     img[x][y] = (230, 200, 150)
 
-        # misc.imshow(img)
-        misc.imsave("image.png", img)
+                if n_grid[x][y] == 2:
+                    img[x][y] = (204, 0, 0)
+
+                if n_grid[x][y] == 3:
+                    img[x][y] = (51, 153, 255)
+        return img
