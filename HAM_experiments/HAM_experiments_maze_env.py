@@ -436,21 +436,5 @@ def experiment_12():
                              )
 
 
-def experiment_13():
-    env = ArmEnv()
-
-    env.render()
-    params = {
-        "env": env,
-        "num_episodes": 550,
-        "machine": BasicMachineArm,
-        "alpha": 0.1,
-        "epsilon": 0.1,
-        "discount_factor": 0.9,
-    }
-    Q, stats = ham_learning(**params)
-    plotting.plot_multi_test(curve_to_draw=[stats.episode_rewards])
-
-
 if __name__ == "__main__":
-    experiment_13()
+    experiment_12()
