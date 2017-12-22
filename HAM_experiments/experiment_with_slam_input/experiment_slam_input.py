@@ -30,21 +30,21 @@ def experiment_slam_input():
 
     for i in range(n // block_size):
         for j in range(m // block_size):
-            ololo_sum = 0
+            colors_sum = 0
             x, y = i, j
             for ii in range(x * block_size, x * block_size + block_size):
                 for jj in range(y * block_size, y * block_size + block_size):
-                    ololo_sum += sum(im.getpixel((ii, jj))) // 3
+                    colors_sum += sum(im.getpixel((ii, jj))) // 3
 
-            ololo_sum /= block_size * block_size
-            ss.add(ololo_sum)
+            colors_sum /= block_size * block_size
+            ss.add(colors_sum)
             for ii in range(x * block_size, x * block_size + block_size):
                 for jj in range(y * block_size, y * block_size + block_size):
-                    if ololo_sum > 240:
+                    if colors_sum > 240:
                         maze[j][i] = 0
                     else:
                         maze[j][i] = 1
-                    if ololo_sum > 240:
+                    if colors_sum > 240:
                         img_drawer.point((ii, jj), fill=(255, 255, 255))
                     else:
                         img_drawer.point((ii, jj), fill=(0, 0, 0))
