@@ -32,22 +32,13 @@ class ArmEnv(gym.Env):
         RIGHT: [0, 1],
     }
 
-    def __init__(self, size_x=4, size_y=3):
+    def __init__(self, size_x, size_y, cubes_cnt):
         self._size_x = size_x
         self._size_y = size_y
+        self._cubes_cnt = cubes_cnt
+        # checking for grid overflow
+        assert cubes_cnt < size_x * size_y, "Cubes overflow the grid"
 
-        # ANY CHANGES HERE SHOULD BE THE SAME WITH RESET METHOD {
-        # self._grid = np.zeros(shape=(self._size_x, self._size_y), dtype=np.int32)
-        # self._arm_x = 0
-        # self._arm_y = 0
-        # self._done = False
-        # self._magnet_toggle = False
-        #
-        # cubes = np.array([[0, self._grid.shape[1] - 1], [1, self._grid.shape[1] - 2], [2, self._grid.shape[1] - 3]])
-        # for i in cubes:
-        #     self._grid[i[0], i[1]] = 1
-
-        # }
         self.reset()
 
         self.action_space = spaces.Discrete(6)
@@ -133,11 +124,14 @@ class ArmEnv(gym.Env):
         self._done = False
         self._magnet_toggle = False
 
-        cubes = np.array([[self._grid.shape[0] - 1, 0],
-                          [self._grid.shape[0] - 1, 1],
-                          [self._grid.shape[0] - 1, 2]])
-        for i in cubes:
-            self._grid[i[0], i[1]] = 1
+        cubes_left = self._cubes_cnt
+        for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
+            if cubes_left == 0:
+                break
+            cubes_left -= 1
+            self._grid[x, y] = 1
+
+        exit(0)
 
         return self._get_obs()
 
@@ -169,6 +163,8 @@ class ArmEnv(gym.Env):
             for y in range(img.shape[1]):
                 if n_grid[x][y] == 2:
                     img[x][y] = (100, 120, 70)
+                if n_grid[x][y] == 1:
+                    img[x][y] = (230, 200, 150)
         # Display the image
         # misc.imshow(img)
 
