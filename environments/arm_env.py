@@ -30,10 +30,14 @@ class ArmEnv(gym.Env):
         RIGHT: [0, 1],
     }
 
-    def __init__(self, size_x, size_y, cubes_cnt):
+    def __init__(self, size_x, size_y, cubes_cnt, episode_max_length, finish_reward, action_minus_reward, tower_target_size):
         self._size_x = size_x
         self._size_y = size_y
         self._cubes_cnt = cubes_cnt
+        self._episode_max_length = episode_max_length
+        self._finish_reward = finish_reward
+        self._action_minus_reward = action_minus_reward
+        self._tower_target_size = tower_target_size
         # checking for grid overflow
         assert cubes_cnt < size_x * size_y, "Cubes overflow the grid"
 
@@ -62,6 +66,8 @@ class ArmEnv(gym.Env):
 
     def _step(self, a):
 
+        self._episode_length += 1
+
         if a in self.MOVE_ACTIONS:
             cube_dx, cube_dy = self.MOVE_ACTIONS[self.DOWN]
             cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
@@ -84,7 +90,6 @@ class ArmEnv(gym.Env):
         elif a == self.ON:
             self._magnet_toggle = True
         elif a == self.OFF:
-
             cube_dx, cube_dy = self.MOVE_ACTIONS[self.DOWN]
             cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
             if self.ok(cube_x, cube_y) and self._grid[cube_x, cube_y] == 1 and self._magnet_toggle:
@@ -96,7 +101,7 @@ class ArmEnv(gym.Env):
                 self._magnet_toggle = False
 
         observation = self.grid_to_bin()
-        reward = -1
+        reward = self._action_minus_reward
         info = None
         # self.render_to_image()
         # observation (object): agent's observation of the current environment
@@ -106,11 +111,14 @@ class ArmEnv(gym.Env):
 
         height = self._grid.shape[0]
         for i in range(self._grid.shape[1]):
-            if self._grid[height - 1][i] == 1 and self._grid[height - 2][i] == 1 and self._grid[height - 3][i] == 1:
+            t = np.sum(self._grid[height - 1 - self._tower_target_size:height, i])
+            if t == self._tower_target_size:
                 self._done = True
-                reward = 100
+                reward += self._finish_reward
                 return observation, reward, self._done, info
 
+        if self._episode_max_length <= self._episode_length:
+            self._done = True
         return observation, reward, self._done, info
 
     # return observation
@@ -119,6 +127,7 @@ class ArmEnv(gym.Env):
 
     # return: (states, observations)
     def _reset(self):
+        self._episode_length = 0
         self._grid = np.zeros(shape=(self._size_x, self._size_y), dtype=np.int32)
         self._arm_x = 0
         self._arm_y = 0
