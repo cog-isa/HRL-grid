@@ -14,7 +14,7 @@ class BasicMachineArm(HAM):
 
     def choice(self, info):
         choices = [self.action_up, self.action_right, self.action_down, self.action_left, self.action_on, self.action_off]
-        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        name = info.prefix_machine + __name__ + ":" + self.who_a_mi()
         choices[self.choice_update(info, choices, name)](info)
 
     def action_right(self, info):
@@ -57,7 +57,7 @@ class SmartMachine(BasicMachineArm):
 
     def choice(self, info):
         choices = [self.action_right, self.action_on, self.action_off, self.action_left, self.action_off, self.call_smart]
-        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        name = info.prefix_machine + __name__ + ":" + self.who_a_mi()
         choices[self.choice_update(info, choices, name)](info)
 
     def call_smart(self, info):
@@ -111,7 +111,7 @@ class SmartMachineTest(BasicMachineArm):
 
     def choice(self, info):
         choices = [self.action_right, self.action_on, self.action_off, self.action_left, self.action_off, self.action_on]
-        name = info["prefix_machine"] + __name__ + ":" + self.__class__.__name__ + ":" + self.who_a_mi()
+        name = info.prefix_machine + __name__ + ":" + self.__class__.__name__ + ":" + self.who_a_mi()
         # print(name)
         choices[self.choice_update(info, choices, name)](info)
 

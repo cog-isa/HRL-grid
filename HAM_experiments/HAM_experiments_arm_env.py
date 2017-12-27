@@ -2,6 +2,7 @@ import threading
 from collections import defaultdict
 
 import imageio
+from pygame.time import delay
 
 from HAM.machines_on_arm import BasicMachineArm, SmartMachine, SmartMachineTest
 from environments.arm_env import ArmEnv
@@ -113,18 +114,17 @@ def experiment_03():
 
 
 def experiment_04():
-    episode_max_length = 200
+    episode_max_length = 100
     Q3 = defaultdict(lambda: defaultdict(lambda: 0))
-    env = ArmEnv(episode_max_length=episode_max_length, size_x=4, size_y=3, cubes_cnt=3, action_minus_reward=-1, finish_reward=100, tower_target_size=2)
-    episodes_count = 500
+    env = ArmEnv(episode_max_length=episode_max_length, size_x=5, size_y=4, cubes_cnt=5, action_minus_reward=-1, finish_reward=100, tower_target_size=4)
+    episodes_count = 1500
 
     episodes_info_3 = []
     # m3 = {"env": env, "num_episodes": episodes_count, "machine": BasicMachineArm, "q": Q3, "episodes_info": episodes_info_3}
-    m3 = {"env": env, "num_episodes": episodes_count, "machine": SmartMachineTest, "q": Q3, "episodes_info": episodes_info_3}
+    m3 = {"env": env, "num_episodes": episodes_count, "machine": SmartMachineTest, "q": Q3}
 
     _, stats3 = ham_learning(**m3)
 
-    # imageio.mimsave('exp_04.gif', map(env.render_to_image, episodes_info_3[-1]))
 
     plotting.plot_multi_test(smoothing_window=30,
                              xlabel="episode",
@@ -135,11 +135,24 @@ def experiment_04():
                                  m3["machine"],
                              ])
 
-    imageio.mimsave('exp_04.gif', list(map(env.render_to_image, episodes_info_3[-1])), fps=10)
-    imageio.mimsave('exp_05.gif', list(map(env.render_to_image, episodes_info_3[-2])), fps=10)
-    imageio.mimsave('exp_06.gif', list(map(env.render_to_image, episodes_info_3[-3])), fps=10)
-    imageio.mimsave('exp_07.gif', list(map(env.render_to_image, episodes_info_3[-4])), fps=10)
-    imageio.mimsave('exp_08.gif', list(map(env.render_to_image, episodes_info_3[-5])), fps=10)
+    def save_image(name, data, fps):
+        print(name)
+        imageio.mimsave(name, data, fps=fps)
+
+    threads = []
+    for i in range(-3, 0):
+        # data = list(map(env.render_to_image, episodes_info_3[i]))
+        data = []
+        for j in episodes_info_3[i]:
+            data.append(env.render_to_image(j))
+        t = threading.Thread(target=save_image, kwargs={"name": "exp_04_episode_0{i}.gif".format(**locals()), "data": data, "fps": 10})
+        threads.append(t)
+        t.start()
+        # save_image('exp_04.gif', list(map(env.render_to_image, episodes_info_3[-1])), fps=10)
+        # save_image('exp_05.gif', list(map(env.render_to_image, episodes_info_3[-2])), fps=10)
+        # save_image('exp_06.gif', list(map(env.render_to_image, episodes_info_3[-3])), fps=10)
+        # save_image('exp_07.gif', list(map(env.render_to_image, episodes_info_3[-4])), fps=10)
+        # save_image('exp_08.gif', list(map(env.render_to_image, episodes_info_3[-5])), fps=10)
 
 
 if __name__ == "__main__":

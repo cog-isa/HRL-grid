@@ -1,4 +1,4 @@
-from HAM.utils import HAM
+from HAM.utils import HAM, HAMParams
 
 UP = 0
 RIGHT = 1
@@ -12,7 +12,7 @@ class BasicMachine(HAM):
 
     def choice(self, info):
         choices = [self.action_up, self.action_right, self.action_down, self.action_left]
-        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        name = info.prefix_machine + __name__ + ":" + self.who_a_mi()
         choices[self.choice_update(info, choices, name)](info)
 
     def action_right(self, info):
@@ -43,9 +43,9 @@ class L1Machine(HAM):
     def start(self, info):
         return self.choice(info)
 
-    def choice(self, info):
+    def choice(self, info: HAMParams):
         choices = [self.action_up, self.action_right, self.action_down, self.action_left, self.a1]
-        name = info["prefix_machine"] + __name__ + ":" + self.who_a_mi()
+        name = info.prefix_machine + __name__ + ":" + self.who_a_mi()
         choices[self.choice_update(info, choices, name)](info)
 
     def action_right(self, info):

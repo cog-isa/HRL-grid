@@ -55,7 +55,7 @@ def experiment_01():
         "machine": BasicMachine,
         "alpha": 0.1,
         "epsilon": 0.1,
-        "discount_factor": 0.8,
+        "discount_factor": 0.85,
     }
     Q, stats = ham_learning(**params)
     plotting.plot_episode_stats(stats)
@@ -437,4 +437,4 @@ def experiment_12():
 
 
 if __name__ == "__main__":
-    experiment_12()
+    experiment_08()

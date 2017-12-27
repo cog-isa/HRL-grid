@@ -4,76 +4,96 @@ from collections import defaultdict
 from lib import plotting
 
 
+class HAMParams:
+    def __init__(self, Q, env, state, EPSILON, GAMMA, ALPHA, prefix_machine, logger):
+        self.Q = Q
+        self.env = env
+        self.state = state
+        self.EPSILON = EPSILON
+        self.GAMMA = GAMMA
+        self.ALPHA = ALPHA
+        self.prefix_machine = prefix_machine
+
+        self.accumulated_discount = 1.0
+        self.accumulated_rewards = 0
+        self.last = None
+        self.done = False
+
+        self.logger = logger
+
+
 class HAM:
     @staticmethod
-    def choice_update(info, choices, machine_state):
-        last = info["last"]
-        Q = info["Q"]
-        gamma = info["gamma"]
-        r = info["r"]
-
-        state = info["state"]
-        if state not in Q[machine_state]:
-            Q[machine_state][state] = np.zeros(len(choices))
-
-        policy = np.ones(len(choices), dtype=float) * info["EPSILON"] / len(choices)
-        best_action = np.argmax(Q[machine_state][state])
-        policy[best_action] += (1.0 - info["EPSILON"])
-        C = np.random.choice(np.arange(len(policy)), p=policy)
-        if last is not None:
-            last_machine_state, last_env_state, last_choice = last
-            best_next_action = np.argmax(Q[machine_state][state])
-            td_target = r + gamma * info["DIS_FACTOR"] * Q[machine_state][state][best_next_action]
-
-            td_delta = td_target - Q[last_machine_state][last_env_state][last_choice]
-
-            Q[last_machine_state][last_env_state][last_choice] += info["ALPHA"] * td_delta
-        info["r"] = 0
-        info["gamma"] = info["DIS_FACTOR"]
-        info["last"] = (machine_state, state, C)
-
-        return C
+    def get_e_greedy(choices, info: HAMParams, machine_state):
+        policy = np.ones(len(choices), dtype=float) * info.EPSILON / len(choices)
+        best_action = np.argmax(info.Q[machine_state][info.state])
+        policy[best_action] += (1.0 - info.EPSILON)
+        return np.random.choice(np.arange(len(policy)), p=policy)
 
     @staticmethod
-    def apply_action(info, action):
-        if info["done"]:
+    def choice_update(info: HAMParams, choices, machine_state):
+
+        state = info.state
+        if state not in info.Q[machine_state]:
+            info.Q[machine_state][state] = np.zeros(len(choices))
+
+        if info.last is not None:
+            last_machine_state, last_env_state, last_choice = info.last
+            q = info.Q[last_machine_state][last_env_state][last_choice]
+            V = info.Q[machine_state][state][np.argmax(info.Q[machine_state][state])]
+            delta =info.ALPHA * (info.accumulated_rewards + info.accumulated_discount * V - q)
+            q += delta
+            # print(last_env_state, q)
+            info.Q[last_machine_state][last_env_state][last_choice] = q
+        c = HAM.get_e_greedy(choices=choices, info=info, machine_state=machine_state)
+
+        info.accumulated_rewards = 0
+        info.accumulated_discount = 1
+        info.last = (machine_state, state, c)
+
+        if info.logger is not None:
+            info.logger.update(is_choice=True, loc=locals())
+        return c
+
+    @staticmethod
+    def apply_action(info: HAMParams, action):
+        if info.done:
             return
 
-        env = info["env"]
-        next_state, reward, done, _ = env.step(action)
-        info["r"] += reward
-        info["gamma"] *= info["DIS_FACTOR"]
-        info["state"] = next_state
-        info["total_reward"] += reward
-        info["actions_cnt"] += 1
-        # try:
-        if "path" in info and info["path"] is not None:
-            info["path"].append(env.get_agent_x_y())
-        if "episode_info" in info and info["episode_info"] is not None:
-            info["episode_info"].append(env.get_current_info())
+        info.state, reward, done, _ = info.env.step(action)
+
+        info.accumulated_rewards += reward * info.accumulated_discount
+        info.accumulated_discount *= info.GAMMA
+
         if done:
-            info["done"] = True
+            info.done = True
+
+        if info.logger is not None:
+            info.logger.update(is_action=True, loc=locals())
+
+    @staticmethod
+    def call(info, machine):
+        m = machine()
+        old_prefix = info.prefix_machine
+        info.prefix_machine += m.__class__.__name__
+        m.start(info)
+        info.prefix_machine = old_prefix
+
+        if info.log is not None:
+            info.log(is_call=True, loc=locals())
 
     @staticmethod
     def who_a_mi():
         return sys._getframe(1).f_code.co_name
 
-    @staticmethod
-    def call(info, machine):
-        m = machine()
-        old_prefix = info["prefix_machine"]
-        info["prefix_machine"] += m.__class__.__name__
-        m.start(info)
-        info["prefix_machine"] = old_prefix
-
 
 def run_machine(info, machine):
-    while not info["done"]:
+    while not info.done:
         machine.start(info)
     return info
 
 
-def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1, machine=None, q=None, path=None, episodes_info=None):
+def ham_learning(env, num_episodes, GAMMA=0.9, ALPHA=0.1, EPSILON=0.1, machine=None, q=None, logger=None):
     if q is None:
         q = defaultdict(lambda: defaultdict(lambda: 0))
     assert (machine is not None)
@@ -91,29 +111,19 @@ def ham_learning(env, num_episodes, discount_factor=0.9, alpha=0.1, epsilon=0.1,
             sys.stdout.flush()
 
         # Reset the environment and pick the first action
-        state = env.reset()
-        info = {"Q": q,
-                "env": env,
-                "r": 0,
-                "gamma": discount_factor,
-                "last": None,
-                "total_reward": 0,
-                "actions_cnt": 0,
-                "done": False,
-                "state": state,
-                "EPSILON": epsilon,
-                "DIS_FACTOR": discount_factor,
-                "ALPHA": alpha,
-                "stats": statistics,
-                "prefix_machine": "",
-                "path": path,
-                "episode_info": [],
-                "episodes_info": episodes_info
-                }
+        info = HAMParams(Q=q,
+                         env=env,
+                         GAMMA=GAMMA,
+                         state=env.reset(),
+                         EPSILON=EPSILON,
+                         ALPHA=ALPHA,
+                         prefix_machine="",
+                         logger=logger,
+                         )
 
         info = run_machine(info, machine())
-        statistics.episode_lengths[i_episode - 1] = info["actions_cnt"]
-        statistics.episode_rewards[i_episode - 1] += info["total_reward"]
-        if episodes_info is not None:
-            info["episodes_info"].append(info["episode_info"])
+        # statistics.episode_lengths[i_episode - 1] = info.actions_cnt
+        # statistics.episode_rewards[i_episode - 1] += info.total_reward
+        # if episodes_info is not None:
+        #     info.episodes_info.append(info.episode_info)
     return q, statistics
