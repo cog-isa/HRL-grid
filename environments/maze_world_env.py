@@ -187,6 +187,21 @@ class MazeWorldEpisodeLength(discrete.DiscreteEnv):
         self._state_id_table = state_id_table
         self._maze = maze
 
+        n = 0
+        k = 0
+        self.state_to_state_no = {}
+        self.state_to_pattern_no = {}
+        for i in range(int(len(self._state_id_table) / 5)):
+            for j in range(int(len(self._state_id_table[0]) / 5)):
+                for q in range(5):
+                    for z in range(5):
+                        if self._state_id_table[5 * i + q, 5 * j + z] != 0:
+                            self.state_to_state_no[self._state_id_table[5 * i + q, 5 * j + z]] = n
+                            self.state_to_pattern_no[self._state_id_table[5 * i + q, 5 * j + z]] = k
+                        n += 1
+                k += 1
+                n = 0
+
         super(MazeWorldEpisodeLength, self).__init__(max_state_id, number_of_actions, P, isd)
 
     def _step(self, a):

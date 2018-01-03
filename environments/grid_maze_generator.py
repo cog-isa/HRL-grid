@@ -34,16 +34,24 @@ def draw_maze(maze):
     plt.show()
 
 
-def generate_maze(blocks, size_x, size_y, seed=314159265):
+def generate_maze(blocks, size_x, size_y, seed=314159265, options = False):
     np.random.seed(seed)
+    pattern_no_to_id = {}
     maze = None
     for i in range(size_y):
-        row = blocks[np.random.choice(len(blocks), size=1, replace=False)[0]]
+        r0 = np.random.choice(len(blocks), size=1, replace=False)[0]
+        row = blocks[r0]
+        pattern_no_to_id[i*size_x] = r0
         for j in range(1, size_x):
-            row = np.concatenate((row, blocks[np.random.choice(len(blocks), 1, replace=False)[0]]), axis=1)
+            r1 = np.random.choice(len(blocks), 1, replace=False)[0]
+            pattern_no_to_id[i*size_x+j] = r1
+            row = np.concatenate((row, blocks[r1]), axis=1)
         maze = np.concatenate((maze, row), axis=0) if maze is not None else row
 
-    return maze
+    if options:
+        return maze, pattern_no_to_id
+    else:
+        return maze
 
 
 def prepare_maze(maze):
