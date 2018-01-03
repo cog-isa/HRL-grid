@@ -80,6 +80,9 @@ class MazeWorld(discrete.DiscreteEnv):
 
         super(MazeWorld, self).__init__(max_state_id, number_of_actions, P, isd)
 
+    def get_current_info(self):
+        return None
+
     def _render(self, mode='human', close=False):
         if close:
             return
@@ -203,6 +206,9 @@ class MazeWorldEpisodeLength(discrete.DiscreteEnv):
         self.lastaction = None
         self._episode_length = 0
         return self.s
+
+    def get_current_info(self):
+        return None
 
     def _render(self, mode='human', close=False):
         if close:

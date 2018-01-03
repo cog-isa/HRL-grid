@@ -1,9 +1,12 @@
 from collections import defaultdict
 import sys
+
+from HAM.machines_on_arm import BasicMachineArm
+from environments.arm_env import ArmEnv
 from environments.maze_world_env import MazeWorld, MazeWorldEpisodeLength
 from lib import plotting
 from HAM.utils import ham_learning
-from HAM.machines import *
+from HAM.machines_on_grid_maze import *
 from environments.grid_maze_generator import *
 import threading
 
@@ -52,7 +55,7 @@ def experiment_01():
         "machine": BasicMachine,
         "alpha": 0.1,
         "epsilon": 0.1,
-        "discount_factor": 0.8,
+        "discount_factor": 0.85,
     }
     Q, stats = ham_learning(**params)
     plotting.plot_episode_stats(stats)
@@ -434,4 +437,4 @@ def experiment_12():
 
 
 if __name__ == "__main__":
-    experiment_12()
+    experiment_08()
