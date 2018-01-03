@@ -10,9 +10,9 @@ from environments.grid_maze_generator import place_start_finish, generate_maze, 
 #create environment
 ids = [2, 32, 64, 256, 1024]
 blocks = [generate_pattern(i) for i in ids]
-maze, pattern_no_to_id = generate_maze(blocks=blocks, size_x=6, size_y=6, options=True)
+maze, pattern_no_to_id = generate_maze(blocks=blocks, size_x=8, size_y=8, options=True)
 m = place_start_finish(prepare_maze(maze))
-env = MazeWorldEpisodeLength(maze=m, episode_max_length=600, finish_reward=400)
+env = MazeWorldEpisodeLength(maze=m, episode_max_length=700, finish_reward=500)
 
 env.render()
 
@@ -119,8 +119,8 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
     return stats, q_table
 
 
-stats_opt, q_table_opt = q_learning_on_options(env, pattern_no_to_id, maze_options, 8000)
-plotting.plot_episode_stats(stats_opt)
+#stats_opt, q_table_opt = q_learning_on_options(env, pattern_no_to_id, maze_options, 8000)
+#plotting.plot_episode_stats(stats_opt)
 
 def test_policy(env, q_table, options):
     state = env.reset()
@@ -185,10 +185,71 @@ def test_policy(env, q_table, options):
         state = next_state
     return s_r, s_t
 
-print("\n Testing policy")
-s, t = test_policy(env, q_table_opt, maze_options)
-print(s, t)
-print(q_table_opt[22, :])
-print(q_table_opt[31, :])
-print(q_table_opt[45, :])
-print(q_table_opt[50, :])
+#print("\n Testing policy")
+#s, t = test_policy(env, q_table_opt, maze_options)
+#print(s, t)
+
+
+def q_learning(env, num_episodes, eps=0.7, alpha=0.1, gamma=0.99):
+    stats = plotting.EpisodeStats(
+        episode_lengths=np.zeros(num_episodes),
+        episode_rewards=np.zeros(num_episodes))
+
+    # initialize q-function
+    q_table = np.zeros(shape=(env.observation_space.n, env.action_space.n))
+
+    for i_episode in range(num_episodes):
+        # Print out which episode we're on, useful for debugging.
+
+        if (i_episode + 1) % 100 == 0:
+            print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
+            sys.stdout.flush()
+            eps = eps - 0.1 * eps
+
+        # Reset the environment and pick the first action
+        state = env.reset()
+
+        for t in itertools.count():
+            # WE CAN PRINT ENVIRONMENT STATE
+            # env.render()
+
+            # Take a step
+            if np.random.rand(1) < eps:  # choose random action
+                action = np.random.choice(env.action_space.n, size=1)[0]
+            else:
+                action = np.argmax(q_table[state, :])
+
+            next_state, reward, done, _ = env.step(action)
+            q_table[state, action] = (1 - alpha) * q_table[state, action] + alpha * (
+                reward + gamma * np.max(q_table[next_state, :]))
+
+            # Update statistics
+            stats.episode_rewards[i_episode] += reward
+            stats.episode_lengths[i_episode] = t
+
+            if done:
+                break
+
+            state = next_state
+
+    return stats, q_table
+
+a = 5000
+stats_opt, q_table_opt = q_learning_on_options(env, pattern_no_to_id, maze_options, a)
+stats, q_table = q_learning(env, a)
+
+plotting.plot_multi_test(smoothing_window=30,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[stats_opt.episode_rewards,
+                                            stats.episode_rewards],
+                             labels=["options", "q-learning"]
+                             )
+
+#plotting.plot_multi_test(smoothing_window=30,
+#                             xlabel="episode",
+#                             ylabel="length",
+#                             curve_to_draw=[stats_opt.episode_lengths,
+#                                            stats.episode_lengths],
+#                             labels=["options", "q-learning"]
+#                             )
