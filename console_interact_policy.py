@@ -43,13 +43,11 @@ def random_policy(env, num_episodes, ):
 
 
 if __name__ == "__main__":
-    a = ArmEnv()
 
-    a.render()
 
     print("\n" * 100)
 
-    c_env = ArmEnv()
+    c_env = ArmEnv(size_x=3, size_y=3, cubes_cnt=3, episode_max_length=100, finish_reward=100, action_minus_reward=-1, tower_target_size=3)
     _, rew, is_done = (None, None, None)
     for i in range(100):
         print('\n' * 100)
