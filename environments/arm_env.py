@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import gym
 import numpy as np
 import sys
@@ -16,18 +18,20 @@ def up_scaler(grid, up_size):
 class ArmEnv(gym.Env):
     metadata = {'render.modes': ['human', 'ansi']}
 
-    LEFT = 0
-    UP = 1
-    RIGHT = 2
-    DOWN = 3
-    ON = 4
-    OFF = 5
+    ACTIONS = namedtuple("actions", ["LEFT", "UP", "RIGHT", "DOWN", "ON", "OFF", ])(
+        LEFT=0,
+        UP=1,
+        RIGHT=2,
+        DOWN=3,
+        ON=4,
+        OFF=5,
+    )
 
     MOVE_ACTIONS = {
-        UP: [-1, 0],
-        LEFT: [0, -1],
-        DOWN: [1, 0],
-        RIGHT: [0, 1],
+        ACTIONS.UP: [-1, 0],
+        ACTIONS.LEFT: [0, -1],
+        ACTIONS.DOWN: [1, 0],
+        ACTIONS.RIGHT: [0, 1],
     }
 
     def __init__(self, size_x, size_y, cubes_cnt, episode_max_length, finish_reward, action_minus_reward, tower_target_size):
@@ -69,7 +73,7 @@ class ArmEnv(gym.Env):
         self._episode_length += 1
 
         if a in self.MOVE_ACTIONS:
-            cube_dx, cube_dy = self.MOVE_ACTIONS[self.DOWN]
+            cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
             cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
             if self._magnet_toggle and self.ok(cube_x, cube_y) and self._grid[cube_x][cube_y] == 1:
                 new_arm_x, new_arm_y = self._arm_x + self.MOVE_ACTIONS[a][0], self._arm_y + self.MOVE_ACTIONS[a][1]
@@ -87,10 +91,10 @@ class ArmEnv(gym.Env):
                 else:
                     # cant move, mb -reward
                     pass
-        elif a == self.ON:
+        elif a == self.ACTIONS.ON:
             self._magnet_toggle = True
-        elif a == self.OFF:
-            cube_dx, cube_dy = self.MOVE_ACTIONS[self.DOWN]
+        elif a == self.ACTIONS.OFF:
+            cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
             cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
             if self.ok(cube_x, cube_y) and self._grid[cube_x, cube_y] == 1 and self._magnet_toggle:
                 new_cube_x, new_cube_y = cube_x + cube_dx, cube_y + cube_dy
@@ -120,6 +124,9 @@ class ArmEnv(gym.Env):
         if self._episode_max_length <= self._episode_length:
             self._done = True
         return observation, reward, self._done, info
+
+    def is_done(self):
+        return self._done
 
     # return observation
     def _get_obs(self):
@@ -193,3 +200,6 @@ class ArmEnv(gym.Env):
                 if n_grid[x][y] == 3:
                     img[x][y] = (51, 153, 255)
         return img
+
+    def get_actions_as_dict(self):
+        return {_: getattr(self.ACTIONS, _) for _ in self.ACTIONS._fields}
