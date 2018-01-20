@@ -80,6 +80,9 @@ class MazeWorld(discrete.DiscreteEnv):
 
         super(MazeWorld, self).__init__(max_state_id, number_of_actions, P, isd)
 
+    def is_done(self):
+        return self._done
+
     def get_current_info(self):
         return None
 
@@ -181,6 +184,8 @@ class MazeWorldEpisodeLength(discrete.DiscreteEnv):
         # uncomment for on-model
         # self.P = P
 
+        self._is_done = False
+
         # will only be used for our own render method
         self._episode_max_length = episode_max_length
         self._episode_length = 0
@@ -212,14 +217,15 @@ class MazeWorldEpisodeLength(discrete.DiscreteEnv):
         self.lastaction = a
         self._episode_length += 1
         if self._episode_length == self._episode_max_length:
-            d = True
+            self._is_done = True
         assert (self._episode_length <= self._episode_max_length)
-        return s, r, d, {"prob": p}
+        return s, r, self._is_done, {"prob": p}
 
     def _reset(self):
         self.s = categorical_sample(self.isd, self.np_random)
         self.lastaction = None
         self._episode_length = 0
+        self._is_done = True
         return self.s
 
     def get_current_info(self):
