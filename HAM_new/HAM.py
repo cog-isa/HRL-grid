@@ -3,6 +3,7 @@ import operator
 import sys
 
 from environments.arm_env import ArmEnv
+from lib import plotting
 
 
 class HAMParams:
@@ -165,6 +166,9 @@ class Choice(MachineVertex):
         own_machine.params.previous_machine_choice_state = foo
         own_machine.params.previous_machine_choice = action
 
+        own_machine.params.accumulated_rewards = 0
+        own_machine.params.accumulated_discount = 1
+
         # TODO rewrite with non-recursive variant
         return choice_relations[action].right.run(own_machine)
 
@@ -191,6 +195,11 @@ class Action(MachineVertex):
     def run(self, own_machine: AbstractMachine):
         if self.action is not None:
             state, reward, done, _ = own_machine.params.env.step(self.action)
+            own_machine.params.logs["reward"] += reward
+            if done:
+                own_machine.params.logs["ep_rewards"].append(own_machine.params.logs["reward"])
+                own_machine.params.logs["reward"] = 0
+
             # own_machine.params.env.render()
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
@@ -218,13 +227,13 @@ class MachineRelation:
 
 
 def main():
-    env = ArmEnv(episode_max_length=500,
-                 size_x=3,
-                 size_y=3,
-                 cubes_cnt=3,
+    env = ArmEnv(episode_max_length=300,
+                 size_x=5,
+                 size_y=4,
+                 cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=3)
+                 tower_target_size=4)
 
     params = HAMParams(q_value={},
                        env=env,
@@ -237,7 +246,7 @@ def main():
                        accumulated_rewards=0,
                        previous_machine_choice_state=None,
                        env_is_done=None,
-                       logs=None,
+                       logs={"reward": 0, "ep_rewards": []},
                        on_model_transition_id_function=lambda env_: 1 if env_.is_done() else 0,
                        )
 
@@ -279,9 +288,20 @@ def main():
 
     sys.setrecursionlimit(100000)
     root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))
-    for i in range(1000):
+    num_episodes = 5000
+    for i_episode in range(num_episodes):
         env.reset()
         root.run(params)
+        if i_episode % 10 == 0:
+            print("\r{root} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
+            sys.stdout.flush()
+    plotting.plot_multi_test(smoothing_window=30,
+                             xlabel="episode",
+                             ylabel="smoothed rewards",
+                             curve_to_draw=[params.logs["ep_rewards"]
+                                            ],
+                             labels=["ololo"]
+                             )
 
 
 if __name__ == "__main__":
