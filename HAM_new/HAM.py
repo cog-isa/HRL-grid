@@ -75,9 +75,6 @@ class AbstractMachine:
         self.get_on_model_transition_id = lambda: self.params.on_model_transition_id_function(self.params.env)
         while not isinstance(current_vertex, Stop):
             current_vertex = current_vertex.run(self)
-        # TODO to think about to uncomment the code
-        # self.params = None
-        # self.get_on_model_transition_id = None
 
 
 class RootMachine(AbstractMachine):
@@ -125,7 +122,6 @@ class Start(MachineVertex):
 
 class Stop(MachineVertex):
     def run(self, own_machine: AbstractMachine):
-        # print(self)
         pass
 
 
@@ -137,7 +133,6 @@ class Choice(MachineVertex):
 
         # set unique id for Choice:MachineVertex object
         self.id, Choice.free_id = Choice.free_id, Choice.free_id + 1
-        # print(self.__class__.__name__, self.id)
 
     @staticmethod
     def get_e_greedy(q_choices: dict, eps: float):
@@ -147,24 +142,23 @@ class Choice(MachineVertex):
             return max(q_choices.items(), key=operator.itemgetter(1))[0]
 
     def run(self, own_machine: AbstractMachine):
-        # TODO refactor foo with proper name
-        foo = own_machine.id, self.id, own_machine.params.env.get_current_state()
+        combined_state = own_machine.id, self.id, own_machine.params.env.get_current_state()
 
-        # TODO move the choice_relations logic to own_machine
+        # TODO to move the choice_relations logic into own_machine's code
         choice_relations = {_.id: _ for _ in own_machine.vertex_mapping[self]}
 
-        if foo not in own_machine.params.q_value:
-            own_machine.params.q_value[foo] = {_: 0 for _ in choice_relations.keys()}
+        if combined_state not in own_machine.params.q_value:
+            own_machine.params.q_value[combined_state] = {_: 0 for _ in choice_relations.keys()}
 
         if own_machine.params.previous_machine_choice_state is not None:
             q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice]
-            V = own_machine.params.q_value[foo][self.get_e_greedy(own_machine.params.q_value[foo], eps=0)]
+            V = own_machine.params.q_value[combined_state][self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
             delta = own_machine.params.alpha * (own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * V - q)
             q += delta
             own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice] = q
 
-        action = self.get_e_greedy(own_machine.params.q_value[foo], eps=own_machine.params.eps)
-        own_machine.params.previous_machine_choice_state = foo
+        action = self.get_e_greedy(own_machine.params.q_value[combined_state], eps=own_machine.params.eps)
+        own_machine.params.previous_machine_choice_state = combined_state
         own_machine.params.previous_machine_choice = action
 
         own_machine.params.accumulated_rewards = 0
@@ -286,9 +280,8 @@ def main():
         ),
     )
 
-    sys.setrecursionlimit(100000)
     root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))
-    num_episodes = 5000
+    num_episodes = 2500
     for i_episode in range(num_episodes):
         env.reset()
         root.run(params)
@@ -300,7 +293,7 @@ def main():
                              ylabel="smoothed rewards",
                              curve_to_draw=[params.logs["ep_rewards"]
                                             ],
-                             labels=["ololo"]
+                             labels=["HAM_basic"]
                              )
 
 
