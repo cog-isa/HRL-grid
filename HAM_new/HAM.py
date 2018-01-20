@@ -1,3 +1,7 @@
+import random
+import operator
+import sys
+
 from environments.arm_env import ArmEnv
 
 
@@ -12,7 +16,7 @@ class HAMParams:
                  string_prefix_of_machine,
                  accumulated_discount,
                  accumulated_rewards,
-                 previous_machine_state,
+                 previous_machine_choice_state,
                  env_is_done,
                  logs,
                  on_model_transition_id_function
@@ -26,13 +30,15 @@ class HAMParams:
         self.string_prefix_of_machine = string_prefix_of_machine
         self.accumulated_discount = accumulated_discount
         self.accumulated_rewards = accumulated_rewards
-        self.previous_machine_state = previous_machine_state
+        self.previous_machine_choice_state = previous_machine_choice_state
         self.env_is_done = env_is_done
         self.logs = logs
         self.on_model_transition_id_function = on_model_transition_id_function
 
 
 class AbstractMachine:
+    free_id = 1
+
     def __init__(self, transitions):
         self.transitions = transitions
 
@@ -48,8 +54,8 @@ class AbstractMachine:
         self.accumulated_discount = 1
         self.accumulated_rewards = 0
 
-        # set id's for choice points
-        # TODO above
+        # set unique id for AbstractMachine object
+        self.id, AbstractMachine.free_id = AbstractMachine.free_id, AbstractMachine.free_id + 1
 
     def run(self, params: HAMParams):
         t = filter(lambda x: isinstance(x.left, Start), self.transitions)
@@ -76,7 +82,7 @@ class RootMachine(AbstractMachine):
     def __init__(self, machine_to_invoke):
         start = Start()
         call = Call(machine_to_invoke)
-        choice = Choice(choice_id=0)
+        choice = Choice()
         stop = Stop()
         transitions = (
             MachineRelation(left=start, right=call),
@@ -117,22 +123,50 @@ class Start(MachineVertex):
 
 class Stop(MachineVertex):
     def run(self, own_machine: AbstractMachine):
-        print(self)
+        # print(self)
         pass
 
 
 class Choice(MachineVertex):
-    def __init__(self, choice_id):
+    free_id = 1
+
+    def __init__(self):
         super(MachineVertex, self).__init__()
-        self.id = choice_id
+
+        # set unique id for Choice:MachineVertex object
+        self.id, Choice.free_id = Choice.free_id, Choice.free_id + 1
+        # print(self.__class__.__name__, self.id)
+
+    @staticmethod
+    def get_e_greedy(q_choices: dict, eps: float):
+        if random.random() < eps:
+            return random.choice(list(q_choices.keys()))
+        else:
+            return max(q_choices.items(), key=operator.itemgetter(1))[0]
 
     def run(self, own_machine: AbstractMachine):
-        print(self)
+        # TODO refactor foo with proper name
+        foo = own_machine.id, self.id, own_machine.params.env.get_current_state()
 
-        # TODO implement choice vertex
+        # TODO move the choice_relations logic to own_machine
+        choice_relations = {_.id: _ for _ in own_machine.vertex_mapping[self]}
 
-        # calling next vertex
-        return own_machine.vertex_mapping[self][0].right.run(own_machine)
+        if foo not in own_machine.params.q_value:
+            own_machine.params.q_value[foo] = {_: 0 for _ in choice_relations.keys()}
+
+        if own_machine.params.previous_machine_choice_state is not None:
+            q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice]
+            V = own_machine.params.q_value[foo][self.get_e_greedy(own_machine.params.q_value[foo], eps=0)]
+            delta = own_machine.params.alpha * (own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * V - q)
+            q += delta
+            own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice] = q
+
+        action = self.get_e_greedy(own_machine.params.q_value[foo], eps=own_machine.params.eps)
+        own_machine.params.previous_machine_choice_state = foo
+        own_machine.params.previous_machine_choice = action
+
+        # TODO rewrite with non-recursive variant
+        return choice_relations[action].right.run(own_machine)
 
 
 class Call(MachineVertex):
@@ -155,10 +189,9 @@ class Action(MachineVertex):
         return super(Action, self).__str__() + "(" + str(self.action) + ")"
 
     def run(self, own_machine: AbstractMachine):
-        print(self)
         if self.action is not None:
             state, reward, done, _ = own_machine.params.env.step(self.action)
-
+            # own_machine.params.env.render()
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
 
@@ -167,6 +200,8 @@ class Action(MachineVertex):
 
 
 class MachineRelation:
+    free_id = 1
+
     def __init__(self, left, right, label=None):
         assert not (not isinstance(left, Action) and label is not None), "Action state vertex doesn't have specified label"
         assert not (isinstance(left, Action) and label is None), "Non action state vertex has specified label"
@@ -175,15 +210,22 @@ class MachineRelation:
         self.right = right
         self.label = label
 
+        # set unique id for MachineRelation object
+        self.id, MachineRelation.free_id = MachineRelation.free_id, MachineRelation.free_id + 1
+
     def __str__(self):
         return str(self.left) + " -> " + str(self.right)
 
 
 def main():
-    env = ArmEnv(episode_max_length=10, size_x=5, size_y=4, cubes_cnt=5, action_minus_reward=-1, finish_reward=100,
-                 tower_target_size=4)
-    # TODO delete the code
-    env.get_actions_as_dict()
+    env = ArmEnv(episode_max_length=500,
+                 size_x=3,
+                 size_y=3,
+                 cubes_cnt=3,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=3)
+
     params = HAMParams(q_value={},
                        env=env,
                        current_state=None,
@@ -193,14 +235,14 @@ def main():
                        string_prefix_of_machine=None,
                        accumulated_discount=1,
                        accumulated_rewards=0,
-                       previous_machine_state=None,
+                       previous_machine_choice_state=None,
                        env_is_done=None,
                        logs=None,
                        on_model_transition_id_function=lambda env_: 1 if env_.is_done() else 0,
                        )
 
     start = Start()
-    choice_one = Choice(choice_id=0)
+    choice_one = Choice()
     left = Action(action=env.get_actions_as_dict()["LEFT"])
     right = Action(action=env.get_actions_as_dict()["RIGHT"])
     up = Action(action=env.get_actions_as_dict()["UP"])
@@ -209,37 +251,37 @@ def main():
     off = Action(action=env.get_actions_as_dict()["OFF"])
 
     stop = Stop()
-    simple_machine = AbstractMachine(transitions=(
-        MachineRelation(left=start, right=choice_one),
-        MachineRelation(left=choice_one, right=left),
-        MachineRelation(left=choice_one, right=right),
-        MachineRelation(left=choice_one, right=up),
-        MachineRelation(left=choice_one, right=down),
-        MachineRelation(left=choice_one, right=on),
-        MachineRelation(left=choice_one, right=off),
+    simple_machine = AbstractMachine(
+        transitions=(
+            MachineRelation(left=start, right=choice_one),
+            MachineRelation(left=choice_one, right=left),
+            MachineRelation(left=choice_one, right=right),
+            MachineRelation(left=choice_one, right=up),
+            MachineRelation(left=choice_one, right=down),
+            MachineRelation(left=choice_one, right=on),
+            MachineRelation(left=choice_one, right=off),
 
-        MachineRelation(left=left, right=stop, label=0),
-        MachineRelation(left=right, right=stop, label=0),
-        MachineRelation(left=up, right=stop, label=0),
-        MachineRelation(left=down, right=stop, label=0),
-        MachineRelation(left=on, right=stop, label=0),
-        MachineRelation(left=off, right=stop, label=0),
+            MachineRelation(left=left, right=stop, label=0),
+            MachineRelation(left=right, right=stop, label=0),
+            MachineRelation(left=up, right=stop, label=0),
+            MachineRelation(left=down, right=stop, label=0),
+            MachineRelation(left=on, right=stop, label=0),
+            MachineRelation(left=off, right=stop, label=0),
 
-        MachineRelation(left=left, right=stop, label=1),
-        MachineRelation(left=right, right=stop, label=1),
-        MachineRelation(left=up, right=stop, label=1),
-        MachineRelation(left=down, right=stop, label=1),
-        MachineRelation(left=on, right=stop, label=1),
-        MachineRelation(left=off, right=stop, label=1),
-    ),
+            MachineRelation(left=left, right=stop, label=1),
+            MachineRelation(left=right, right=stop, label=1),
+            MachineRelation(left=up, right=stop, label=1),
+            MachineRelation(left=down, right=stop, label=1),
+            MachineRelation(left=on, right=stop, label=1),
+            MachineRelation(left=off, right=stop, label=1),
+        ),
     )
 
-    # simple_machine.run()
-
-    # root = RootMachine(machine_to_invoke=RootMachine(machine_to_invoke=simple_machine))
-    # root.run(params)
+    sys.setrecursionlimit(100000)
     root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))
-    root.run(params)
+    for i in range(1000):
+        env.reset()
+        root.run(params)
 
 
 if __name__ == "__main__":
