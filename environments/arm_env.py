@@ -105,6 +105,7 @@ class ArmEnv(gym.Env):
                 self._magnet_toggle = False
 
         observation = self.grid_to_bin()
+        self._current_state = observation
         reward = self._action_minus_reward
         info = None
         # self.render_to_image()
@@ -140,6 +141,7 @@ class ArmEnv(gym.Env):
         self._arm_y = 0
         self._done = False
         self._magnet_toggle = False
+        self._current_state = 0
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
@@ -200,6 +202,9 @@ class ArmEnv(gym.Env):
                 if n_grid[x][y] == 3:
                     img[x][y] = (51, 153, 255)
         return img
+
+    def get_current_state(self):
+        return self._current_state
 
     def get_actions_as_dict(self):
         return {_: getattr(self.ACTIONS, _) for _ in self.ACTIONS._fields}
