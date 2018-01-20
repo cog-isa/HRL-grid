@@ -73,7 +73,8 @@ class AbstractMachine:
         self.params = params
         # TODO to think of making the code properly
         self.get_on_model_transition_id = lambda: self.params.on_model_transition_id_function(self.params.env)
-        current_vertex.run(self)
+        while not isinstance(current_vertex, Stop):
+            current_vertex = current_vertex.run(self)
         # TODO to think about to uncomment the code
         # self.params = None
         # self.get_on_model_transition_id = None
@@ -118,8 +119,8 @@ class MachineVertex:
 
 class Start(MachineVertex):
     def run(self, own_machine: AbstractMachine):
-        # calling next vertex
-        return own_machine.vertex_mapping[self][0].right.run(own_machine)
+        # return next vertex
+        return own_machine.vertex_mapping[self][0].right
 
 
 class Stop(MachineVertex):
@@ -169,8 +170,7 @@ class Choice(MachineVertex):
         own_machine.params.accumulated_rewards = 0
         own_machine.params.accumulated_discount = 1
 
-        # TODO rewrite with non-recursive variant
-        return choice_relations[action].right.run(own_machine)
+        return choice_relations[action].right
 
 
 class Call(MachineVertex):
@@ -181,8 +181,8 @@ class Call(MachineVertex):
     def run(self, own_machine: AbstractMachine):
         self.machine_to_call.run(own_machine.params)
 
-        # calling next vertex
-        return own_machine.vertex_mapping[self][0].right.run(own_machine)
+        # return next vertex
+        return own_machine.vertex_mapping[self][0].right
 
 
 class Action(MachineVertex):
@@ -204,8 +204,8 @@ class Action(MachineVertex):
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
 
-        # calling next vertex
-        return own_machine.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right.run(own_machine)
+        # return next vertex
+        return own_machine.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
 
 
 class MachineRelation:
