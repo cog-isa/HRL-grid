@@ -46,7 +46,10 @@ class AbstractMachine:
         self.vertex_mapping = {_: [i for i in self.transitions if i.left == _] for _ in set([i.left for i in transitions])}
 
         self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.vertex_mapping[_]} for _ in
-                                            set([i.left for i in transitions if isinstance(i.left, Action)])}
+                                            set([i.left for i in self.transitions if isinstance(i.left, Action)])}
+
+        # choice to relations_vertex id's mapping
+        self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
 
         self.params = None
         self.get_on_model_transition_id = None
@@ -71,7 +74,7 @@ class AbstractMachine:
             pass
 
         self.params = params
-        # TODO to think of making the code properly
+        # shortcut lambda for on_model function
         self.get_on_model_transition_id = lambda: self.params.on_model_transition_id_function(self.params.env)
         while not isinstance(current_vertex, Stop):
             current_vertex = current_vertex.run(self)
@@ -144,16 +147,13 @@ class Choice(MachineVertex):
     def run(self, own_machine: AbstractMachine):
         combined_state = own_machine.id, self.id, own_machine.params.env.get_current_state()
 
-        # TODO to move the choice_relations logic into own_machine's code
-        choice_relations = {_.id: _ for _ in own_machine.vertex_mapping[self]}
-
         if combined_state not in own_machine.params.q_value:
-            own_machine.params.q_value[combined_state] = {_: 0 for _ in choice_relations.keys()}
+            own_machine.params.q_value[combined_state] = {_: 0 for _ in own_machine.choice_relations[self].keys()}
 
         if own_machine.params.previous_machine_choice_state is not None:
             q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice]
-            V = own_machine.params.q_value[combined_state][self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
-            delta = own_machine.params.alpha * (own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * V - q)
+            v = own_machine.params.q_value[combined_state][self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
+            delta = own_machine.params.alpha * (own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
             q += delta
             own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice] = q
 
@@ -164,7 +164,7 @@ class Choice(MachineVertex):
         own_machine.params.accumulated_rewards = 0
         own_machine.params.accumulated_discount = 1
 
-        return choice_relations[action].right
+        return own_machine.choice_relations[self][action].right
 
 
 class Call(MachineVertex):
@@ -194,7 +194,6 @@ class Action(MachineVertex):
                 own_machine.params.logs["ep_rewards"].append(own_machine.params.logs["reward"])
                 own_machine.params.logs["reward"] = 0
 
-            # own_machine.params.env.render()
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
 
@@ -223,7 +222,7 @@ class MachineRelation:
 def main():
     env = ArmEnv(episode_max_length=300,
                  size_x=5,
-                 size_y=4,
+                 size_y=3,
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
@@ -281,7 +280,7 @@ def main():
     )
 
     root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))
-    num_episodes = 2500
+    num_episodes = 1500
     for i_episode in range(num_episodes):
         env.reset()
         root.run(params)
