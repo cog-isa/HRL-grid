@@ -1,8 +1,8 @@
-from environments.maze_world_env import MazeWorldEpisodeLength
-from lib import plotting
-from HAM.utils import ham_learning
 from HAM.machines_on_grid_maze import *
-from environments.grid_maze_generator import *
+from HAM.utils import ham_learning
+from environments.grid_maze_env.grid_maze_generator import *
+from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
+from lib import plotting
 
 
 def experiment_slam_input():
@@ -88,7 +88,6 @@ def experiment_slam_input():
         for ii in range(x * block_size, x * block_size + block_size):
             for jj in range(y * block_size, y * block_size + block_size):
                 img_drawer.point((ii, jj), fill=(255, 255, 0))
-        import time
         # if index > 100:
         #     break
     imageio.mimsave('movie.gif', images)

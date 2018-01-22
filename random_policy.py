@@ -1,15 +1,12 @@
-import gym
 import itertools
-import matplotlib
-import numpy as np
-import pandas as pd
 import sys
 
-from collections import defaultdict
-from environments.maze_world_env import MazeWorld
-from lib import plotting
+import matplotlib
+import numpy as np
 
-from environments.grid_maze_generator import generate_maze, generate_pattern, prepare_maze, generate_maze_please
+from environments.grid_maze_env.grid_maze_generator import generate_maze_please
+from environments.grid_maze_env.maze_world_env import MazeWorld
+from lib import plotting
 
 
 def random_policy(env, num_episodes, ):
@@ -51,6 +48,6 @@ matplotlib.style.use('ggplot')
 
 env = MazeWorld(maze=generate_maze_please())
 # make 50 iterations
-stats = random_policy(env, 3)
+stats = random_policy(env, 100)
 env._render()
 plotting.plot_episode_stats(stats)

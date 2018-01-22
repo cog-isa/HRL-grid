@@ -1,10 +1,12 @@
-import numpy as np
-import random
 import itertools
+import random
 import sys
-from environments.maze_world_env import categorical_sample
-from lib import plotting
+
+import numpy as np
 from gym.envs.toy_text import discrete
+
+from environments.grid_maze_env.maze_world_env import categorical_sample
+from lib import plotting
 
 UP = 0
 RIGHT = 1

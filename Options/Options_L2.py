@@ -1,16 +1,13 @@
-import gym
 import itertools
+import random
+import sys
+
 import matplotlib
 import numpy as np
-import pandas as pd
-import sys
-import random
 
-from collections import defaultdict
-from environments.maze_world_env import MazeWorld, MazeWorldEpisodeLength
+from environments.grid_maze_env.grid_maze_generator import generate_maze_please
+from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
 from lib import plotting
-
-from environments.grid_maze_generator import generate_maze, generate_pattern, prepare_maze, generate_maze_please
 
 matplotlib.style.use('ggplot')
 

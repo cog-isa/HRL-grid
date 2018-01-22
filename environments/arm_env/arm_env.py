@@ -1,10 +1,11 @@
 from collections import namedtuple
 
-import gym
 import numpy as np
 import sys
 
 from gym import spaces
+
+from environments.env_core import CoreEnv
 
 
 def up_scaler(grid, up_size):
@@ -14,11 +15,10 @@ def up_scaler(grid, up_size):
     return res
 
 
-# noinspection PyChainedComparisons
-class ArmEnv(gym.Env):
+class ArmEnv(CoreEnv):
     metadata = {'render.modes': ['human', 'ansi']}
 
-    ACTIONS = namedtuple("actions", ["LEFT", "UP", "RIGHT", "DOWN", "ON", "OFF", ])(
+    ACTIONS = namedtuple("ACTIONS", ["LEFT", "UP", "RIGHT", "DOWN", "ON", "OFF", ])(
         LEFT=0,
         UP=1,
         RIGHT=2,

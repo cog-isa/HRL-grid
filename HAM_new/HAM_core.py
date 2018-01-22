@@ -2,7 +2,7 @@ import random
 import operator
 import sys
 
-from environments.arm_env import ArmEnv
+from environments.arm_env.arm_env import ArmEnv
 from lib import plotting
 
 
@@ -107,6 +107,22 @@ class LoopInvokerMachine(AbstractMachine):
             MachineRelation(left=empty_action, right=stop, label=1),
         )
         super().__init__(transitions=transitions)
+
+
+class AutoBasicMachine(RootMachine):
+    def __init__(self, env_):
+        start = Start()
+        choice_one = Choice()
+        actions = [Action(action=_) for _ in env_.get_actions_as_dict().values()]
+        stop = Stop()
+
+        transitions = [MachineRelation(left=start, right=choice_one), ]
+        for action in actions:
+            transitions.append(MachineRelation(left=choice_one, right=action))
+            transitions.append(MachineRelation(left=action, right=stop, label=0))
+            transitions.append(MachineRelation(left=action, right=stop, label=1))
+
+        super().__init__(machine_to_invoke=LoopInvokerMachine(AbstractMachine(transitions=transitions)))
 
 
 class MachineVertex:

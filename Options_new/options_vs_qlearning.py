@@ -1,11 +1,12 @@
-import numpy as np
-from Options_new.maze_options import MazeWorldTrain, place_finish, prepare_train_maze, Option
-import sys
-from environments.maze_world_env import MazeWorld, MazeWorldEpisodeLength
-from lib import plotting
 import itertools
+import sys
 
-from environments.grid_maze_generator import place_start_finish, generate_maze, generate_pattern, prepare_maze
+import numpy as np
+
+from Options_new.maze_options import MazeWorldTrain, place_finish, prepare_train_maze, Option
+from environments.grid_maze_env.grid_maze_generator import place_start_finish, generate_maze, generate_pattern, prepare_maze
+from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
+from lib import plotting
 
 #create environment
 ids = [2, 32, 64, 256, 1024]

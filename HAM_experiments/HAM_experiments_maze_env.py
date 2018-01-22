@@ -1,14 +1,11 @@
-from collections import defaultdict
 import sys
+from collections import defaultdict
 
-from HAM.machines_on_arm import BasicMachineArm
-from environments.arm_env import ArmEnv
-from environments.maze_world_env import MazeWorld, MazeWorldEpisodeLength
-from lib import plotting
-from HAM.utils import ham_learning
 from HAM.machines_on_grid_maze import *
-from environments.grid_maze_generator import *
-import threading
+from HAM.utils import ham_learning
+from environments.grid_maze_env.grid_maze_generator import *
+from environments.grid_maze_env.maze_world_env import MazeWorld, MazeWorldEpisodeLength
+from lib import plotting
 
 base_patterns = [2 ** 4 + 2 ** 8, 1 + 2 ** 12, 0]
 x = list(map(generate_pattern, base_patterns))
@@ -437,4 +434,4 @@ def experiment_12():
 
 
 if __name__ == "__main__":
-    experiment_08()
+    experiment_12()

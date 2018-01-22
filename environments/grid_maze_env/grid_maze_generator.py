@@ -122,11 +122,4 @@ def generate_maze_please(size_x=3, size_y=4):
 
 
 if __name__ == "__main__":
-    # a = generate_maze(blocks=[generate_pattern(i) for i in [7]], size_x=2, size_y=2)
-    # b = generate_maze(blocks=[generate_pattern(i) for i in [64, 64]], size_x=2, size_y=2)
-    # t = prepare_maze(generate_maze(blocks=[generate_pattern(64)], size_x=3, size_y=4))
-    # t = place_start_finish(t)
-    # print(t)
-    t = generate_maze_please()
-    # print("******" * 10)
-    print(t)
+    print(generate_maze_please())
