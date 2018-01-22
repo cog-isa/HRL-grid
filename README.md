@@ -2,12 +2,12 @@
 
 
 The project is designed to simulate hierarchical reinforcement learning algorithms. 
-There is two various environments: [grid_maze_env README](TODO) and [arm_env README](TODO). One should check the environments' READMEs for more information. 
+There is two various environments: [grid_maze_env README](https://github.com/cog-isa/HRL-grid/blob/master/environments/grid_maze_env/GRID_MAZE_README.md) and [arm_env README](https://github.com/cog-isa/HRL-grid/blob/master/environments/arm_env/ARM_README.md). One should check the environments' READMEs for more information. 
 
 
 ### Hierarchies of Abstract Machines  
-You can run experiments with handcrafted machines hierarchies in module [ham_experiments](). 
-And also examine [HAM's readme file](TODO).
+You can run experiments with handcrafted machines hierarchies in module [ham_experiments](https://github.com/cog-isa/HRL-grid/tree/master/HAM_new/HAM_experiments). 
+And also examine [HAM's readme file](https://github.com/cog-isa/HRL-grid/blob/master/HAM_new/HAM_README.md).
 
 ### Prerequisites
 
