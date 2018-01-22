@@ -97,4 +97,5 @@ def plot_multi_test(curve_to_draw=None, smoothing_window=10, xlabel="X", ylabel=
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
+    plt.savefig("diagram.png")
     plt.show(fig2)
