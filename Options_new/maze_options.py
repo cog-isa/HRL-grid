@@ -5,8 +5,9 @@ import sys
 import numpy as np
 from gym.envs.toy_text import discrete
 
-from environments.grid_maze_env.maze_world_env import categorical_sample
-from lib import plotting
+# from environments.grid_maze_env.maze_world_env import categorical_sample
+from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
+from utils import plotting
 
 UP = 0
 RIGHT = 1
@@ -33,8 +34,8 @@ class MazeWorldTrain(discrete.DiscreteEnv):
         start_id = None
 
         self.possible_sets = []
-        for i in range(2, maze_size_x-2):
-            for j in range(2, maze_size_y-2):
+        for i in range(2, maze_size_x - 2):
+            for j in range(2, maze_size_y - 2):
                 if maze[i, j] == 0:
                     self.possible_sets.append([i, j])
 
@@ -98,7 +99,7 @@ class MazeWorldTrain(discrete.DiscreteEnv):
 
     def _step(self, a):
         transitions = self.P[self.s][a]
-        i = categorical_sample([t[0] for t in transitions], self.np_random)
+        i = MazeWorldEpisodeLength.categorical_sample([t[0] for t in transitions], self.np_random)
         p, s, r, d = transitions[i]
         self.s = s
         self.lastaction = a
@@ -109,17 +110,17 @@ class MazeWorldTrain(discrete.DiscreteEnv):
         return s, r, d, {"prob": p}
 
     def _reset(self):
-        #clear previous start point
+        # clear previous start point
         for i in range(len(self._maze)):
             for j in range(len(self._maze[0])):
-                if self._maze[i,j] == 2:
+                if self._maze[i, j] == 2:
                     self._maze[i, j] = 0
 
         # randomly choose new start point
         start = random.choice(self.possible_sets)
         self.s = self._state_id_table[start[0]][start[1]]
         self._maze[start[0], start[1]] = 2
-        #self.s = categorical_sample(self.isd, self.np_random)
+        # self.s = categorical_sample(self.isd, self.np_random)
 
         self.lastaction = None
         self._episode_length = 0
@@ -176,19 +177,19 @@ def place_start(maze):
 # adds to the pattern exits and walls
 def prepare_train_maze(maze):
     maze_size_x, maze_size_y = len(maze), len(maze[0])
-    mz = np.ones(shape=(maze_size_x+4, maze_size_y+4))
-    mz[2:maze_size_x+2, 2:maze_size_y+2] = maze
+    mz = np.ones(shape=(maze_size_x + 4, maze_size_y + 4))
+    mz[2:maze_size_x + 2, 2:maze_size_y + 2] = maze
     for i in range(maze_size_x):
-        if maze[i,0] == 0 or maze[i, 0] == 2:
-            mz[i+2, 1] = 0
-        if maze[i, maze_size_y-1] == 0 or maze[i, maze_size_y-1] == 2:
-            mz[i+2, maze_size_y+2] = 0
+        if maze[i, 0] == 0 or maze[i, 0] == 2:
+            mz[i + 2, 1] = 0
+        if maze[i, maze_size_y - 1] == 0 or maze[i, maze_size_y - 1] == 2:
+            mz[i + 2, maze_size_y + 2] = 0
 
     for j in range(maze_size_y):
         if maze[0, j] == 0 or maze[0, j] == 2:
-            mz[1, j+2] = 0
-        if maze[maze_size_x-1, j] == 0 or maze[maze_size_x-1, j] == 2:
-            mz[maze_size_x+2, j+2] = 0
+            mz[1, j + 2] = 0
+        if maze[maze_size_x - 1, j] == 0 or maze[maze_size_x - 1, j] == 2:
+            mz[maze_size_x + 2, j + 2] = 0
     return mz
 
 
@@ -200,11 +201,11 @@ def place_finish(maze, direction):
                 maze[1, i] = 3
     elif direction == 1:
         for i in range(len(maze)):
-            if maze[i, len(maze[0])-2] == 0:
+            if maze[i, len(maze[0]) - 2] == 0:
                 maze[i, len(maze[0]) - 2] = 3
     elif direction == 2:
         for i in range(len(maze[0])):
-            if maze[len(maze)-2, i] == 0:
+            if maze[len(maze) - 2, i] == 0:
                 maze[len(maze) - 2, i] = 3
     else:
         for i in range(len(maze)):
@@ -219,7 +220,7 @@ class Option:
         if q_table:
             self.q_table = q_table
         else:
-            self.q_table = np.zeros(shape=(env.observation_space.n-1, env.action_space.n))
+            self.q_table = np.zeros(shape=(env.observation_space.n - 1, env.action_space.n))
 
         self.state_no_to_index = {}
         state_no = 0
@@ -239,7 +240,7 @@ class Option:
 
         for i_episode in range(num_episodes):
 
-            if (i_episode + 1) % np.round(num_episodes/10) == 0:
+            if (i_episode + 1) % np.round(num_episodes / 10) == 0:
                 eps = eps - 0.2 * eps
 
             state = self.env.reset()
@@ -250,7 +251,7 @@ class Option:
                 if np.random.rand(1) < eps:  # choose random action
                     action = np.random.choice(self.env.action_space.n, size=1)[0]
                 else:
-                    action = np.argmax(self.q_table[state-1, :])
+                    action = np.argmax(self.q_table[state - 1, :])
 
                 next_state, reward, done, _ = self.env.step(action)
 
@@ -268,8 +269,8 @@ class Option:
                 state = next_state
 
         # as we don't need to keep values for the states out of the pattern 5x5
-        needed_indexes = np.sort(np.reshape(self.env._state_id_table[2:7, 2:7], (1,25))[0])
-        needed_indexes = needed_indexes[needed_indexes != 0]-1
+        needed_indexes = np.sort(np.reshape(self.env._state_id_table[2:7, 2:7], (1, 25))[0])
+        needed_indexes = needed_indexes[needed_indexes != 0] - 1
         self.q_table = self.q_table[needed_indexes]
 
         self.env.reset()

@@ -6,9 +6,9 @@ import numpy as np
 from Options_new.maze_options import MazeWorldTrain, place_finish, prepare_train_maze, Option
 from environments.grid_maze_env.grid_maze_generator import place_start_finish, generate_maze, generate_pattern, prepare_maze
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
-from lib import plotting
+from utils import plotting
 
-#create environment
+# create environment
 ids = [2, 32, 64, 256, 1024]
 blocks = [generate_pattern(i) for i in ids]
 maze, pattern_no_to_id = generate_maze(blocks=blocks, size_x=6, size_y=6, options=True)
@@ -19,7 +19,7 @@ env.render()
 
 # for each type of pattern create 4 train environments
 train_envs = np.array([[MazeWorldTrain(place_finish(prepare_train_maze(generate_pattern(id)), direction=a))
-               for a in range(4)] for id in ids])
+                        for a in range(4)] for id in ids])
 
 # for each type of pattern we have 4 options (even if some ways are blocked)
 maze_options = np.array([[Option(train_env_).learning_option() for train_env_ in train_env] for train_env in train_envs])
@@ -50,7 +50,7 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
-            #if i_episode == num_episodes - 1:
+            # if i_episode == num_episodes - 1:
             #    print("\n")
             #    print(state)
             #    env.render()
@@ -61,14 +61,14 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
             else:
                 action0 = np.argmax(q_table[state, :])
 
-            #if i_episode == num_episodes - 1: print(action0)
+            # if i_episode == num_episodes - 1: print(action0)
 
             # if option is chosen
             if action0 < 4:
                 pattern_no = env.state_to_pattern_no[state]
                 pattern_id = pattern_no_to_id[pattern_no]
 
-                #if i_episode == num_episodes - 1: print(pattern_no, pattern_id)
+                # if i_episode == num_episodes - 1: print(pattern_no, pattern_id)
 
                 opt = options[pattern_id, action0]
                 opt_rew = 0
@@ -92,7 +92,7 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
                 next_state = opt_state
 
                 q_table[state, action0] = (1 - alpha) * q_table[state, action0] + alpha * (
-                opt_rew + gamma**opt_t * np.max(q_table[next_state, :]))
+                    opt_rew + gamma ** opt_t * np.max(q_table[next_state, :]))
 
                 # Update statistics
                 stats.episode_rewards[i_episode] += opt_rew
@@ -104,7 +104,7 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
                 state = next_state
 
             else:
-                next_state, reward, done, _ = env.step(action0-4)
+                next_state, reward, done, _ = env.step(action0 - 4)
                 q_table[state, action0] = (1 - alpha) * q_table[state, action0] + alpha * (
                     reward + gamma * np.max(q_table[next_state, :]))
 
@@ -122,6 +122,7 @@ def q_learning_on_options(env, pattern_no_to_id, options, num_episodes, eps=0.7,
 
 stats_opt, q_table_opt = q_learning_on_options(env, pattern_no_to_id, maze_options, 8000)
 plotting.plot_episode_stats(stats_opt)
+
 
 def test_policy(env, q_table, options):
     state = env.reset()
@@ -175,7 +176,7 @@ def test_policy(env, q_table, options):
 
             state = next_state
         else:
-            next_state, reward, done, _ = env.step(action-4)
+            next_state, reward, done, _ = env.step(action - 4)
 
             s_r += reward
             s_t = t
@@ -185,6 +186,7 @@ def test_policy(env, q_table, options):
 
         state = next_state
     return s_r, s_t
+
 
 print("\n Testing policy")
 s, t = test_policy(env, q_table_opt, maze_options)
