@@ -46,6 +46,7 @@ def ham_runner(ham, num_episodes, env, params):
     for i_episode in range(1, num_episodes + 1):
         env.reset()
         ham.run(params)
+        assert env.is_done(), "The machine is STOPPED before STOP(done) of the environment"
         if i_episode % 10 == 0:
             print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
             sys.stdout.flush()
