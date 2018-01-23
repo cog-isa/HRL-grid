@@ -3,7 +3,7 @@ import operator
 import sys
 
 from environments.arm_env.arm_env import ArmEnv
-from lib import plotting
+from utils import plotting
 
 
 class HAMParams:
@@ -304,8 +304,8 @@ def main():
             print("\r{root} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
             sys.stdout.flush()
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[params.logs["ep_rewards"]
                                             ],
                              labels=["HAM_basic"]

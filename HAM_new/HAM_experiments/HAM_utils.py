@@ -4,7 +4,7 @@ import sys
 
 from HAM_new.HAM_core import HAMParams
 from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, prepare_maze
-from lib import plotting
+from utils import plotting
 
 
 class HAMParamsCommon(HAMParams):
@@ -35,8 +35,8 @@ def maze_world_input_01():
 
 def plot_multi(p_params):
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[_.curve_to_draw for _ in p_params],
                              labels=[_.label for _ in p_params]
                              )
