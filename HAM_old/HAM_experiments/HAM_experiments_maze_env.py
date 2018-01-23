@@ -1,11 +1,11 @@
 import sys
 from collections import defaultdict
 
-from HAM.machines_on_grid_maze import *
-from HAM.utils import ham_learning
+from HAM_old.machines_on_grid_maze import *
+from HAM_old.utils import ham_learning
 from environments.grid_maze_env.grid_maze_generator import *
 from environments.grid_maze_env.maze_world_env import MazeWorld, MazeWorldEpisodeLength
-from lib import plotting
+from utils import plotting
 
 base_patterns = [2 ** 4 + 2 ** 8, 1 + 2 ** 12, 0]
 x = list(map(generate_pattern, base_patterns))
@@ -231,8 +231,8 @@ def experiment_07():
     Q3, stats3 = ham_learning(**m3)
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats1.episode_rewards, stats2.episode_rewards, stats3.episode_rewards],
                              labels=[m1["machine"], m2["machine"], m3["machine"]]
                              )
@@ -254,8 +254,8 @@ def experiment_07():
         st3.append(episode_sum)
 
     plotting.plot_multi_test(smoothing_window=10,
-                             xlabel="episode",
-                             ylabel="done cnt",
+                             x_label="episode",
+                             y_label="done cnt",
                              curve_to_draw=[st1, st2, st3],
                              labels=[m1["machine"], m2["machine"], m3["machine"]]
                              )
@@ -302,8 +302,8 @@ def experiment_08():
     m3 = {"machine": BasicMachine}
 
     plotting.plot_multi_test(smoothing_window=100,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[q1_result, q2_result, q3_result],
                              labels=[m1["machine"], m2["machine"], m3["machine"]]
                              )
@@ -331,8 +331,8 @@ def experiment_09():
     _, stats4 = ham_learning(**m4)
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats1.episode_rewards, stats2.episode_rewards, stats3.episode_rewards,
                                             stats4.episode_rewards],
                              labels=[m1["machine"], m2["machine"], m3["machine"], m4["machine"]]
@@ -355,8 +355,8 @@ def experiment_10():
     _, stats4 = ham_learning(**m4)
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats3.episode_rewards,
                                             stats4.episode_rewards],
                              labels=[m3["machine"], m4["machine"]]
@@ -397,8 +397,8 @@ def experiment_11():
     m3 = {"machine": BasicMachine}
     m4 = {"machine": L2Interesting}
     plotting.plot_multi_test(smoothing_window=50,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[q3_result, q4_result],
                              labels=[m3["machine"], m4["machine"]]
                              )
@@ -424,8 +424,8 @@ def experiment_12():
     _, stats5 = ham_learning(**m5)
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats3.episode_rewards,
                                             stats4.episode_rewards,
                                             stats5.episode_rewards],

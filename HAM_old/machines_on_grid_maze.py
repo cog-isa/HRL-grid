@@ -1,4 +1,4 @@
-from HAM.utils import HAM, HAMParams
+from HAM_old.utils import HAM, HAMParams
 
 UP = 0
 RIGHT = 1

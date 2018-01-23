@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 from collections import defaultdict
-from lib import plotting
+from utils import plotting
 
 
 class HAMParams:

@@ -4,10 +4,10 @@ from collections import defaultdict
 import imageio
 from pygame.time import delay
 
-from HAM.machines_on_arm import BasicMachineArm, SmartMachine, SmartMachineTest
+from HAM_old.machines_on_arm import BasicMachineArm, SmartMachine, SmartMachineTest
 from environments.arm_env import ArmEnv
-from lib import plotting
-from HAM.utils import ham_learning
+from utils import plotting
+from HAM_old.utils import ham_learning
 import numpy as np
 
 
@@ -102,8 +102,8 @@ def experiment_03():
     _, stats4 = ham_learning(**m4)
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats3.episode_rewards,
                                             stats4.episode_rewards,
                                             ],
@@ -127,8 +127,8 @@ def experiment_04():
 
 
     plotting.plot_multi_test(smoothing_window=30,
-                             xlabel="episode",
-                             ylabel="smoothed rewards",
+                             x_label="episode",
+                             y_label="smoothed rewards",
                              curve_to_draw=[stats3.episode_rewards,
                                             ],
                              labels=[
