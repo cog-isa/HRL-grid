@@ -7,22 +7,24 @@ import numpy as np
 
 from environments.grid_maze_env.grid_maze_generator import generate_maze_please
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
-from lib import plotting
+from utils import plotting
 
 matplotlib.style.use('ggplot')
 
-env = MazeWorldEpisodeLength(maze=generate_maze_please(size_x = 2, size_y=2))
+env = MazeWorldEpisodeLength(maze=generate_maze_please(size_x=2, size_y=2))
+
+
 # make 50 iterations
-#stats, q_table = q_learning(env, 200)
-#plotting.plot_episode_stats(stats)
+# stats, q_table = q_learning(env, 200)
+# plotting.plot_episode_stats(stats)
 
-#s, t = test_policy(env, q_table)
-#print(s, t)
+# s, t = test_policy(env, q_table)
+# print(s, t)
 
-#print(env.action_space.sample())
+# print(env.action_space.sample())
 
 class option():
-    def __init__(self, env, init_set, term_cond, goal_state, q_table,d):
+    def __init__(self, env, init_set, term_cond, goal_state, q_table, d):
         self.env = env
         self.init_set = init_set
         self.term_cond = term_cond
@@ -76,77 +78,79 @@ class option():
 
         return stats, self.q_table
 
-#  опция выход через верхний проход для правого нижнего паттерна
-init_set = np.array([22,26,27,28,32,33,34,38,39,40])
-term_cond = np.ones(shape = (env.observation_space.n,))
+
+# опция выход через верхний проход для правого нижнего паттерна
+init_set = np.array([22, 26, 27, 28, 32, 33, 34, 38, 39, 40])
+term_cond = np.ones(shape=(env.observation_space.n,))
 term_cond[init_set] = 0
 goal_state = 20
-q_table = np.zeros(shape=(init_set.shape[0]+2, env.action_space.n))
-d = dict(zip(np.append(init_set, [31,20]), np.arange(init_set.shape[0]+2))) # to map q-table rows to the right states
+q_table = np.zeros(shape=(init_set.shape[0] + 2, env.action_space.n))
+d = dict(zip(np.append(init_set, [31, 20]), np.arange(init_set.shape[0] + 2)))  # to map q-table rows to the right states
 
-option1 = option(env, init_set= init_set, term_cond=term_cond, goal_state=goal_state, q_table=q_table,d=d)
+option1 = option(env, init_set=init_set, term_cond=term_cond, goal_state=goal_state, q_table=q_table, d=d)
 _, _ = option1.learning_option(num_episodes=70)
 
 #  опция выход через левый проход для правого нижнего паттерна
-init_set2 = np.array([22,26,27,28,32,33,34,38,39,40])
-term_cond2 = np.ones(shape = (env.observation_space.n,))
+init_set2 = np.array([22, 26, 27, 28, 32, 33, 34, 38, 39, 40])
+term_cond2 = np.ones(shape=(env.observation_space.n,))
 term_cond2[init_set2] = 0
 goal_state2 = 31
-q_table2 = np.zeros(shape=(init_set2.shape[0]+2, env.action_space.n))
-d2 = dict(zip(np.append(init_set2, [20,31]), np.arange(init_set2.shape[0]+2))) # to map q-table rows to the right states
+q_table2 = np.zeros(shape=(init_set2.shape[0] + 2, env.action_space.n))
+d2 = dict(zip(np.append(init_set2, [20, 31]), np.arange(init_set2.shape[0] + 2)))  # to map q-table rows to the right states
 
 option2 = option(env, init_set=init_set2, term_cond=term_cond2, goal_state=goal_state2, q_table=q_table2, d=d2)
 _, _ = option2.learning_option(num_episodes=100)
 
 #  опция выход через верхний проход для левого нижнего паттерна
-init_set3 = np.array([21,23,24,25,29,30,31,35,36,37])
-term_cond3 = np.ones(shape = (env.observation_space.n,))
+init_set3 = np.array([21, 23, 24, 25, 29, 30, 31, 35, 36, 37])
+term_cond3 = np.ones(shape=(env.observation_space.n,))
 term_cond3[init_set3] = 0
 goal_state3 = 19
-q_table3 = np.zeros(shape=(init_set3.shape[0]+2, env.action_space.n))
-d3 = dict(zip(np.append(init_set3, [32,19]), np.arange(init_set3.shape[0]+2))) # to map q-table rows to the right states
+q_table3 = np.zeros(shape=(init_set3.shape[0] + 2, env.action_space.n))
+d3 = dict(zip(np.append(init_set3, [32, 19]), np.arange(init_set3.shape[0] + 2)))  # to map q-table rows to the right states
 
 option3 = option(env, init_set=init_set3, term_cond=term_cond3, goal_state=goal_state3, q_table=q_table3, d=d3)
 _, _ = option3.learning_option(num_episodes=100)
 
 #  опция выход через правый проход для левого нижнего паттерна
-init_set4 = np.array([21,23,24,25,29,30,31,35,36,37])
-term_cond4 = np.ones(shape = (env.observation_space.n,))
+init_set4 = np.array([21, 23, 24, 25, 29, 30, 31, 35, 36, 37])
+term_cond4 = np.ones(shape=(env.observation_space.n,))
 term_cond4[init_set4] = 0
 goal_state4 = 32
-q_table4 = np.zeros(shape=(init_set4.shape[0]+2, env.action_space.n))
-d4 = dict(zip(np.append(init_set4, [19,32]), np.arange(init_set4.shape[0]+2))) # to map q-table rows to the right states
+q_table4 = np.zeros(shape=(init_set4.shape[0] + 2, env.action_space.n))
+d4 = dict(zip(np.append(init_set4, [19, 32]), np.arange(init_set4.shape[0] + 2)))  # to map q-table rows to the right states
 
 option4 = option(env, init_set=init_set4, term_cond=term_cond4, goal_state=goal_state4, q_table=q_table4, d=d4)
 _, _ = option4.learning_option(num_episodes=100)
 
 #  опция выход через левый проход для правого верхнего паттерна
-init_set5 = np.array([4,5,6,10,11,12,16,17,18,20])
-term_cond5 = np.ones(shape = (env.observation_space.n,))
+init_set5 = np.array([4, 5, 6, 10, 11, 12, 16, 17, 18, 20])
+term_cond5 = np.ones(shape=(env.observation_space.n,))
 term_cond5[init_set5] = 0
 goal_state5 = 9
-q_table5 = np.zeros(shape=(init_set5.shape[0]+2, env.action_space.n))
-d5 = dict(zip(np.append(init_set5, [9,22]), np.arange(init_set5.shape[0]+2))) # to map q-table rows to the right states
+q_table5 = np.zeros(shape=(init_set5.shape[0] + 2, env.action_space.n))
+d5 = dict(zip(np.append(init_set5, [9, 22]), np.arange(init_set5.shape[0] + 2)))  # to map q-table rows to the right states
 
 option5 = option(env, init_set=init_set5, term_cond=term_cond5, goal_state=goal_state5, q_table=q_table5, d=d5)
 _, _ = option5.learning_option(num_episodes=100)
 
 #  опция выход через нижний проход для правого верхнего паттерна
-init_set6 = np.array([4,5,6,10,11,12,16,17,18,20])
+init_set6 = np.array([4, 5, 6, 10, 11, 12, 16, 17, 18, 20])
 term_cond6 = np.ones(shape=(env.observation_space.n,))
 term_cond6[init_set6] = 0
 goal_state6 = 22
-q_table6 = np.zeros(shape=(init_set6.shape[0]+2, env.action_space.n))
-d6 = dict(zip(np.append(init_set6, [9,22]), np.arange(init_set6.shape[0]+2))) # to map q-table rows to the right states
+q_table6 = np.zeros(shape=(init_set6.shape[0] + 2, env.action_space.n))
+d6 = dict(zip(np.append(init_set6, [9, 22]), np.arange(init_set6.shape[0] + 2)))  # to map q-table rows to the right states
 
 option6 = option(env, init_set=init_set6, term_cond=term_cond6, goal_state=goal_state6, q_table=q_table6, d=d6)
 _, _ = option6.learning_option(num_episodes=100)
 
-#plotting.plot_episode_stats(stats)
-#s, t = test_policy(env, q_table)
-#print(s, t)
 
-#print(env.observation_space.n)
+# plotting.plot_episode_stats(stats)
+# s, t = test_policy(env, q_table)
+# print(s, t)
+
+# print(env.observation_space.n)
 
 
 def q_learning_on_options(env, options, num_episodes, eps=0.4, alpha=0.1, gamma=0.8):
@@ -157,15 +161,15 @@ def q_learning_on_options(env, options, num_episodes, eps=0.4, alpha=0.1, gamma=
     n_actions = env.action_space.n
     n_states = env.observation_space.n
     q = []
-    for i in range(1,n_states):
-        b = [i for i in range(n_actions)] #basic moves are available everywhere
+    for i in range(1, n_states):
+        b = [i for i in range(n_actions)]  # basic moves are available everywhere
         for k, o_ in enumerate(options):
             if i in o_.init_set:
-                b.append(n_actions+k)
+                b.append(n_actions + k)
         q.append(b)
 
-    #print(np.random.choice(q[39]))
-    #print(q[39])
+    # print(np.random.choice(q[39]))
+    # print(q[39])
 
 
     # initialize q-function
@@ -184,31 +188,31 @@ def q_learning_on_options(env, options, num_episodes, eps=0.4, alpha=0.1, gamma=
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
-            if i_episode == num_episodes -1:
+            if i_episode == num_episodes - 1:
                 print(state)
                 env.render()
                 print(action0)
 
             # Take an action
             if np.random.rand(1) < eps:  # choose random option
-                action0 = np.random.choice(q[state-1])
+                action0 = np.random.choice(q[state - 1])
             else:
-                #action0 = np.where(q_table[state, :] == np.max(q_table[state, q[state-1]]))[0][0]
-                argmax = q[state-1][0]
-                for l in q[state-1][1:]:
+                # action0 = np.where(q_table[state, :] == np.max(q_table[state, q[state-1]]))[0][0]
+                argmax = q[state - 1][0]
+                for l in q[state - 1][1:]:
                     if q_table[state, l] > q_table[state, argmax]:
                         argmax = l
                 action0 = argmax
 
-            #print(q_table[state, :])
-            #print(q[state-1])
-            #print(np.max(q_table[state, q[state-1]]))
-            #print(action0)
+            # print(q_table[state, :])
+            # print(q[state-1])
+            # print(np.max(q_table[state, q[state-1]]))
+            # print(action0)
 
 
             if action0 >= 4:
-                opt = options[action0-n_actions]
-                #execute the option's policy
+                opt = options[action0 - n_actions]
+                # execute the option's policy
                 opt_rev = 0
                 opt_t = 0
                 opt_state = state
@@ -227,9 +231,9 @@ def q_learning_on_options(env, options, num_episodes, eps=0.4, alpha=0.1, gamma=
                 next_state = opt_state
                 reward = opt_rev
 
-                #update rule in case of options
+                # update rule in case of options
                 q_table[state, action0] = (1 - alpha) * q_table[state, action0] + alpha * (
-                opt_rev + gamma**opt_t * np.max(q_table[next_state, q[next_state-1]]))
+                    opt_rev + gamma ** opt_t * np.max(q_table[next_state, q[next_state - 1]]))
 
                 # Update statistics
                 stats.episode_rewards[i_episode] += opt_rev
@@ -256,9 +260,11 @@ def q_learning_on_options(env, options, num_episodes, eps=0.4, alpha=0.1, gamma=
 
     return stats, q_table
 
-stats, q_table = q_learning_on_options(env, [option1,option2,option3, option4, option5,option6],500)
+
+stats, q_table = q_learning_on_options(env, [option1, option2, option3, option4, option5, option6], 500)
 plotting.plot_episode_stats(stats)
 print(q_table)
+
 
 def test_policy(env, q_table, options):
     state = env.reset()
@@ -315,7 +321,7 @@ def test_policy(env, q_table, options):
         state = next_state
     return S_r, S_t
 
-s, t = test_policy(env, q_table, [option1,option2,option3, option4, option5,option6])
+
+s, t = test_policy(env, q_table, [option1, option2, option3, option4, option5, option6])
 
 print(s, t)
-
