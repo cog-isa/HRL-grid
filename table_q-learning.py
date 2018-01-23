@@ -1,16 +1,16 @@
 import itertools
 import sys
 
-import matplotlib
 import numpy as np
 
+from environments.arm_env.arm_env import ArmEnv
 from environments.grid_maze_env.grid_maze_generator import generate_maze_please
 from environments.grid_maze_env.maze_world_env import MazeWorld
-from lib import plotting
+from utils import plotting
 
 
 def q_learning(env, num_episodes, eps=0.4, alpha=0.1, gamma=0.8):
-    stats = plotting.EpisodeStats(
+    to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
 
@@ -39,19 +39,18 @@ def q_learning(env, num_episodes, eps=0.4, alpha=0.1, gamma=0.8):
                 action = np.argmax(q_table[state, :])
 
             next_state, reward, done, _ = env.step(action)
-            q_table[state, action] = (1 - alpha) * q_table[state, action] + alpha * (
-                reward + gamma * np.max(q_table[next_state, :]))
+            q_table[state, action] = (1 - alpha) * q_table[state, action] + alpha * (reward + gamma * np.max(q_table[next_state, :]))
 
             # Update statistics
-            stats.episode_rewards[i_episode] += reward
-            stats.episode_lengths[i_episode] = t
+            to_plot.episode_rewards[i_episode] += reward
+            to_plot.episode_lengths[i_episode] = t
 
             if done:
                 break
 
             state = next_state
 
-    return stats, q_table
+    return to_plot, q_table
 
 
 def test_policy(env, q_table):
@@ -78,12 +77,22 @@ def test_policy(env, q_table):
     return S_r, S_t
 
 
-matplotlib.style.use('ggplot')
+def main():
+    env = ArmEnv(episode_max_length=300,
+                 size_x=5,
+                 size_y=3,
+                 cubes_cnt=4,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=4)
+    env = MazeWorld(maze=generate_maze_please())
 
-env = MazeWorld(maze=generate_maze_please())
-# make 50 iterations
-stats, q_table = q_learning(env, 20000)
-plotting.plot_episode_stats(stats)
+    # make 50 iterations
+    stats, q_table = q_learning(env, 20000)
+    plotting.plot_episode_stats(stats)
 
-s, t = test_policy(env, q_table)
-print(s, t)
+    s, t = test_policy(env, q_table)
+    print(s, t)
+
+if __name__ == '__main__':
+    main()

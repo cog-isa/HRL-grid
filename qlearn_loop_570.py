@@ -6,7 +6,7 @@ import numpy as np
 
 from environments.grid_maze_env.grid_maze_generator import generate_maze, generate_pattern, prepare_maze, place_start_finish
 from environments.grid_maze_env.maze_world_env import MazeWorld
-from lib import plotting
+from utils import plotting
 
 
 def q_learning(env, num_episodes, eps=0.01, alpha=0.1, gamma=0.5):
