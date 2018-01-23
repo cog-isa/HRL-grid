@@ -21,6 +21,7 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
     MOVES = [ACTIONS.UP, ACTIONS.RIGHT, ACTIONS.DOWN, ACTIONS.LEFT]
     MOVES_X_Y = {ACTIONS.UP: (0, -1), ACTIONS.RIGHT: (1, 0), ACTIONS.DOWN: (0, 1), ACTIONS.LEFT: (-1, 0)}
 
+    # noinspection PyUnresolvedReferences
     @staticmethod
     def categorical_sample(prob_n, np_random):
         """
@@ -28,8 +29,11 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
         Each row specifies class probabilities
         """
         prob_n = np.asarray(prob_n)
-        csprob_n = np.cumsum(prob_n)
-        return (csprob_n > np_random.rand()).argmax()
+        cs_prob_n = np.cumsum(prob_n)
+
+        # cs_prob_n > np_random.rand() the same with:
+        #  np.apply_along_axis(lambda x: x > np_random.rand(), 0, cs_prob_n)))
+        return cs_prob_n > np_random.rand().argmax()
 
     def is_done(self):
         return self._is_done
@@ -43,7 +47,7 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
     def __init__(self, maze, finish_reward=100, wall_minus_reward=-5, action_minus_reward=-1, episode_max_length=100):
         number_of_actions = 4
 
-        P = {}
+        prob = {}
 
         state_id = 1
         maze_size_x = len(maze)
@@ -67,7 +71,7 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
                 if maze[i][j] == 1:
                     continue
 
-                P[state_id] = {a: [] for a in range(number_of_actions)}
+                prob[state_id] = {a: [] for a in range(number_of_actions)}
 
                 for move in MazeWorldEpisodeLength.MOVES:
                     x, y = MazeWorldEpisodeLength.MOVES_X_Y[move]
@@ -76,21 +80,21 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
 
                     new_state = state_id_table[x][y]
 
-                    # if we try to go to the wall
-                    reward = 0
+                    # if we are trying to go into the wall then ...
                     if maze[x][y] == 1:
                         reward = wall_minus_reward
                         new_state = state_id_table[i][j]
-                    # if it is the terminal state
+                    # if agents on the finish cell
                     elif maze[x][y] == 3:
                         reward = finish_reward
                         new_state = state_id_table[i][j]
-                    # if the starting or empty cell
+                    # if agents on the start cell
                     elif maze[x][y] == 0 or maze[x][y] == 2:
                         reward = action_minus_reward
                     else:
                         raise ValueError
-                    P[state_id][move] = [(1.0, new_state, reward, maze[x][y] == 3)]
+                    # [probability, state, reward, done]
+                    prob[state_id][move] = [(1.0, new_state, reward, maze[x][y] == 3)]
 
         isd = np.zeros(max_state_id)
         isd[start_id] = 1.0
@@ -121,7 +125,7 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
                 k += 1
                 n = 0
 
-        super(MazeWorldEpisodeLength, self).__init__(max_state_id, number_of_actions, P, isd)
+        super(MazeWorldEpisodeLength, self).__init__(max_state_id, number_of_actions, prob, isd)
 
     def _step(self, a):
         transitions = self.P[self._current_state][a]
@@ -180,4 +184,4 @@ class MazeWorld(MazeWorldEpisodeLength):
 
     def __init__(self, maze, finish_reward=100, wall_minus_reward=-5, action_minus_reward=-1):
         super(MazeWorld, self).__init__(maze=maze, finish_reward=finish_reward, wall_minus_reward=wall_minus_reward, action_minus_reward=action_minus_reward,
-                                        episode_max_length=2**128)
+                                        episode_max_length=2 ** 128)
