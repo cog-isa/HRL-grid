@@ -1,8 +1,13 @@
-from HAM.machines_on_grid_maze import *
-from HAM.utils import ham_learning
+from HAM_old.machines_on_grid_maze import *
+from HAM_old.utils import ham_learning
 from environments.grid_maze_env.grid_maze_generator import *
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
-from lib import plotting
+from utils import plotting
+import imageio
+
+
+def pil_to_list(img):
+    return np.array(img.getdata(), np.uint8).reshape(img.size[1], img.size[0], 3)
 
 
 def experiment_slam_input():
@@ -48,10 +53,11 @@ def experiment_slam_input():
                         img_drawer.point((ii, jj), fill=(255, 255, 255))
                     else:
                         img_drawer.point((ii, jj), fill=(0, 0, 0))
-    # im.save("new" + ".png")
-    # exit(0)
+
+    # TODO rewrite with new HAM
 
     maze = place_start_finish(prepare_maze(maze))
+
     episode_max_length = 1000
     env = MazeWorldEpisodeLength(maze=maze, finish_reward=1000000, episode_max_length=episode_max_length)
     env.render()
@@ -67,11 +73,6 @@ def experiment_slam_input():
     Q1, stats1 = ham_learning(**params)
     plotting.plot_multi_test(curve_to_draw=[stats1.episode_rewards], smoothing_window=10)
 
-    import imageio
-    def PIL2array(img):
-        return np.array(img.getdata(),
-                        np.uint8).reshape(img.size[1], img.size[0], 3)
-
     im = Image.open('robots_map.jpg')
 
     d = params["path"][-episode_max_length:]
@@ -83,13 +84,13 @@ def experiment_slam_input():
             for jj in range(y * block_size, y * block_size + block_size):
                 img_drawer.point((ii, jj), fill=(240, 13, 13))
 
-        images.append(PIL2array(im))
+        images.append(pil_to_list(im))
 
         for ii in range(x * block_size, x * block_size + block_size):
             for jj in range(y * block_size, y * block_size + block_size):
                 img_drawer.point((ii, jj), fill=(255, 255, 0))
-        # if index > 100:
-        #     break
+                # if index > 100:
+                #     break
     imageio.mimsave('movie.gif', images)
 
 
