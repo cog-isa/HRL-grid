@@ -292,8 +292,8 @@ stats_opt, q_table_opt = q_learning_on_options(env, [option1, option2, option3, 
 stats, q_table = q_learning(env, a)
 
 plotting.plot_multi_test(smoothing_window=30,
-                         xlabel="episode",
-                         ylabel="smoothed rewards",
+                         x_label="episode",
+                         y_label="smoothed rewards",
                          curve_to_draw=[stats_opt.episode_rewards,
                                         stats.episode_rewards],
                          labels=["options", "q-learning"]
