@@ -33,7 +33,7 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
 
         # cs_prob_n > np_random.rand() the same with:
         #  np.apply_along_axis(lambda x: x > np_random.rand(), 0, cs_prob_n)))
-        return cs_prob_n > np_random.rand().argmax()
+        return (cs_prob_n > np_random.rand()).argmax()
 
     def is_done(self):
         return self._is_done
