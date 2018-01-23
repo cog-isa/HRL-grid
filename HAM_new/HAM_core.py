@@ -110,10 +110,10 @@ class LoopInvokerMachine(AbstractMachine):
 
 
 class AutoBasicMachine(RootMachine):
-    def __init__(self, env_):
+    def __init__(self, env):
         start = Start()
         choice_one = Choice()
-        actions = [Action(action=_) for _ in env_.get_actions_as_dict().values()]
+        actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
         stop = Stop()
 
         transitions = [MachineRelation(left=start, right=choice_one), ]
