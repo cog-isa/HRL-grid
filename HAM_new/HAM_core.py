@@ -79,6 +79,20 @@ class AbstractMachine:
         while not isinstance(current_vertex, Stop):
             current_vertex = current_vertex.run(self)
 
+    def get_graph_to_draw(self, already_added_machines=set()):
+        graph = []
+        for i in self.transitions:
+            graph.append((str(i.left), str(i.right), "f(E)=" + str(i.label) if not i.label is None else ""))
+        for i in self.transitions:
+            if isinstance(i.right, Call):
+                if i.right not in already_added_machines:
+                    already_added_machines.add(i.right)
+                    graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines)
+        return graph
+
+    def __str__(self):
+        return "{self.__class__.__name__}{self.id}".format(**locals())
+
 
 class RootMachine(AbstractMachine):
     def __init__(self, machine_to_invoke):
@@ -126,8 +140,14 @@ class AutoBasicMachine(RootMachine):
 
 
 class MachineVertex:
+    free_id = 1
+
+    def __init__(self):
+        # set unique id for MachineVertex object
+        self.id, MachineVertex.free_id = MachineVertex.free_id, MachineVertex.free_id + 1
+
     def __str__(self):
-        return self.__class__.__name__
+        return "{self.__class__.__name__}{self.id}".format(**locals())
 
     def run(self, *args, **kwargs):
         raise NotImplementedError
@@ -138,6 +158,9 @@ class Start(MachineVertex):
         # return next vertex
         return own_machine.vertex_mapping[self][0].right
 
+    def __str__(self):
+        return "{self.__class__.__name__}{self.id}".format(**locals())
+
 
 class Stop(MachineVertex):
     def run(self, own_machine: AbstractMachine):
@@ -145,13 +168,8 @@ class Stop(MachineVertex):
 
 
 class Choice(MachineVertex):
-    free_id = 1
-
     def __init__(self):
-        super(MachineVertex, self).__init__()
-
-        # set unique id for Choice:MachineVertex object
-        self.id, Choice.free_id = Choice.free_id, Choice.free_id + 1
+        super().__init__()
 
     @staticmethod
     def get_e_greedy(q_choices: dict, eps: float):
@@ -185,8 +203,8 @@ class Choice(MachineVertex):
 
 class Call(MachineVertex):
     def __init__(self, machine_to_call: AbstractMachine):
-        super(MachineVertex, self).__init__()
         self.machine_to_call = machine_to_call
+        super().__init__()
 
     def run(self, own_machine: AbstractMachine):
         self.machine_to_call.run(own_machine.params)
@@ -194,10 +212,14 @@ class Call(MachineVertex):
         # return next vertex
         return own_machine.vertex_mapping[self][0].right
 
+    def __str__(self):
+        return super().__str__() + "[{self.machine_to_call}]".format(**locals())
+
 
 class Action(MachineVertex):
     def __init__(self, action=None):
         self.action = action
+        super().__init__()
 
     def __str__(self):
         return super(Action, self).__str__() + "(" + str(self.action) + ")"
