@@ -17,6 +17,14 @@ Things you need to install the software:
 sudo apt-get install python3-tk
 sudo apt-get install python3-dev
 ```
+
+For drawing graphs with pygraphviz one should install:
+
+```
+sudo apt-get install graphviz
+sudo apt-get install graphviz-dev
+sudo pip3.5 install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
+```
 ## Installing
 
 To run `random_policy.py` and test the environment, you must install the following libraries:
@@ -26,6 +34,7 @@ scipy
 pandas
 matplotlib
 numpy
+pygraphviz
 ```
 
 ## Authors
