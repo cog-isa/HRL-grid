@@ -3,6 +3,7 @@ import operator
 import sys
 
 from environments.arm_env.arm_env import ArmEnv
+from environments.env_core import CoreEnv
 from utils import plotting
 
 
@@ -40,13 +41,21 @@ class HAMParams:
 class AbstractMachine:
     free_id = 1
 
+    @staticmethod
+    def get_vertex_mapping(transitions):
+        return {_: [i for i in transitions if i.left == _] for _ in set([i.left for i in transitions if i.left is not None])}
+
+    @staticmethod
+    def get_action_vertex_label_mapping(transitions):
+        return {_: {__.label: __ for __ in AbstractMachine.get_vertex_mapping(transitions)[_]} for _ in
+                set([i.left for i in transitions if isinstance(i.left, Action)])}
+
     def __init__(self, transitions):
         self.transitions = transitions
 
-        self.vertex_mapping = {_: [i for i in self.transitions if i.left == _] for _ in set([i.left for i in transitions])}
+        self.vertex_mapping = self.get_vertex_mapping(transitions=transitions)
 
-        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.vertex_mapping[_]} for _ in
-                                            set([i.left for i in self.transitions if isinstance(i.left, Action)])}
+        self.action_vertex_label_mapping = self.get_action_vertex_label_mapping(transitions=transitions)
 
         # choice to relations_vertex id's mapping
         self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
@@ -82,7 +91,7 @@ class AbstractMachine:
     def get_graph_to_draw(self, already_added_machines=set()):
         graph = []
         for i in self.transitions:
-            graph.append((str(i.left), str(i.right), "f(E)=" + str(i.label) if not i.label is None else ""))
+            graph.append((str(i.left), str(i.right), "f(E)=" + str(i.label) if i.label is not None else ""))
         for i in self.transitions:
             if isinstance(i.right, Call):
                 if i.right not in already_added_machines:
@@ -120,6 +129,96 @@ class LoopInvokerMachine(AbstractMachine):
             MachineRelation(left=empty_action, right=call, label=0),
             MachineRelation(left=empty_action, right=stop, label=1),
         )
+        super().__init__(transitions=transitions)
+
+
+class RandomMachine(AbstractMachine):
+    @staticmethod
+    def create_random_vertex(env, machines_to_call=()):
+        vertex_to_add_list = [Action(action=i) for i in env.get_actions_as_dict().values()]
+        vertex_to_add_list += [Choice()]
+        vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
+        return random.choice(vertex_to_add_list)
+
+    @staticmethod
+    def get_vertex_from_transitions(transitions):
+        res = set(_.left for _ in transitions).union(set(_.right for _ in transitions))
+        # remove auxiliary empty(None) vertex
+        if None in res:
+            res.remove(None)
+        return res
+
+    @staticmethod
+    def check_transitions(transitions):
+        # TODO implement this
+        vertex_mapping = AbstractMachine.get_vertex_mapping(transitions=transitions)
+
+        # vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
+
+        for vertex in vertex_mapping:
+            if isinstance(vertex, Call):
+                if len(vertex_mapping[vertex]) != 1:
+                    return False
+            elif isinstance(vertex, Action):
+                pass
+            elif isinstance(vertex, Choice):
+                pass
+            elif isinstance(vertex, Stop):
+                if len(vertex_mapping[vertex]) != 0:
+                    return False
+            elif isinstance(vertex, Start):
+                if len(vertex_mapping[vertex]) != 1:
+                    return False
+            else:
+                raise KeyError
+
+        # p = AbstractMachine.get_action_vertex_label_mapping(transitions=transitions)
+        return True
+
+    @staticmethod
+    def create_new_possible_relation(transitions):
+        vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
+        machine_relation_to_add = []
+
+        # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
+        for index_i, left in enumerate(vertices):
+            for index_j, right in enumerate(vertices):
+                if index_i > index_j:
+                    continue
+                new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
+                for edge in transitions:
+                    if isinstance(edge.left, Action) and isinstance(new_machine_relation.left, Action):
+                        if edge.label == edge.label:
+                            new_machine_relation = None
+                            break
+                    if edge.left == new_machine_relation.left and edge.right == new_machine_relation.right and edge.label == new_machine_relation.label:
+                        new_machine_relation = None
+                        break
+                if new_machine_relation is None:
+                    continue
+                transitions.append(new_machine_relation)
+                if RandomMachine.check_transitions(transitions=transitions):
+                    machine_relation_to_add.append(new_machine_relation)
+                transitions.pop()
+
+        assert (len(machine_relation_to_add) > 0)
+        return random.choice(machine_relation_to_add)
+
+    def __init__(self, env: CoreEnv, machines_to_call=()):
+        start = Start()
+        stop = Stop()
+
+        transitions = [MachineRelation(left=start, right=stop)]
+
+        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
+        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
+        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
+
+        transitions.append(self.create_new_possible_relation(transitions=transitions))
+        transitions.append(self.create_new_possible_relation(transitions=transitions))
+        transitions.append(self.create_new_possible_relation(transitions=transitions))
+        transitions.append(self.create_new_possible_relation(transitions=transitions))
+
         super().__init__(transitions=transitions)
 
 
