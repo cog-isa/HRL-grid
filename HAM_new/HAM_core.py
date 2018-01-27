@@ -38,27 +38,51 @@ class HAMParams:
         self.on_model_transition_id_function = on_model_transition_id_function
 
 
+class MachineGraph:
+    def get_vertex_from_transitions(self):
+        res = set(_.left for _ in self.transitions).union(set(_.right for _ in self.transitions))
+        # remove auxiliary empty(None) vertex
+        if None in res:
+            res.remove(None)
+        return res
+
+    def get_vertex_mapping(self):
+        return {_: [i for i in self.transitions if i.left == _] for _ in set([i.left for i in self.transitions if i.left is not None])}
+
+    def get_action_vertex_label_mapping(self):
+        return {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
+                set([i.left for i in self.transitions if isinstance(i.left, Action)])}
+
+    def __init__(self, transitions, vertices=None):
+        self.transitions = transitions
+        self.vertices = vertices if vertices is not None else self.get_vertex_from_transitions()
+        self.vertex_mapping = self.get_vertex_mapping()
+        self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
+        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
+                                            set([i.left for i in transitions if isinstance(i.left, Action)])}
+
+
 class AbstractMachine:
     free_id = 1
 
-    @staticmethod
-    def get_vertex_mapping(transitions):
-        return {_: [i for i in transitions if i.left == _] for _ in set([i.left for i in transitions if i.left is not None])}
+    # @staticmethod
+    # def get_vertex_mapping(transitions):
+    #     return {_: [i for i in transitions if i.left == _] for _ in set([i.left for i in transitions if i.left is not None])}
+    #
+    # @staticmethod
+    # def get_action_vertex_label_mapping(transitions):
+    #     return {_: {__.label: __ for __ in AbstractMachine.get_vertex_mapping(transitions)[_]} for _ in
+    #             set([i.left for i in transitions if isinstance(i.left, Action)])}
 
-    @staticmethod
-    def get_action_vertex_label_mapping(transitions):
-        return {_: {__.label: __ for __ in AbstractMachine.get_vertex_mapping(transitions)[_]} for _ in
-                set([i.left for i in transitions if isinstance(i.left, Action)])}
+    def __init__(self, graph: MachineGraph):
+        self.graph = graph
 
-    def __init__(self, transitions):
-        self.transitions = transitions
+        # self.vertex_mapping = self.get_vertex_mapping(transitions=transitions)
 
-        self.vertex_mapping = self.get_vertex_mapping(transitions=transitions)
-
-        self.action_vertex_label_mapping = self.get_action_vertex_label_mapping(transitions=transitions)
+        # self.action_vertex_label_mapping = self.get_action_vertex_label_mapping(transitions=transitions)
 
         # choice to relations_vertex id's mapping
-        self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
+        # self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
 
         self.params = None
         self.get_on_model_transition_id = None
@@ -71,7 +95,7 @@ class AbstractMachine:
         self.id, AbstractMachine.free_id = AbstractMachine.free_id, AbstractMachine.free_id + 1
 
     def run(self, params: HAMParams):
-        t = filter(lambda x: isinstance(x.left, Start), self.transitions)
+        t = filter(lambda x: isinstance(x.left, Start), self.graph.transitions)
         try:
             current_vertex = t.__next__().left
         except StopIteration:
@@ -90,9 +114,9 @@ class AbstractMachine:
 
     def get_graph_to_draw(self, already_added_machines=set()):
         graph = []
-        for i in self.transitions:
+        for i in self.graph.transitions:
             graph.append((str(i.left), str(i.right), "f(E)=" + str(i.label) if i.label is not None else ""))
-        for i in self.transitions:
+        for i in self.graph.transitions:
             if isinstance(i.right, Call):
                 if i.right not in already_added_machines:
                     already_added_machines.add(i.right)
@@ -114,7 +138,7 @@ class RootMachine(AbstractMachine):
             MachineRelation(left=call, right=choice),
             MachineRelation(left=choice, right=stop)
         )
-        super().__init__(transitions=transitions)
+        super().__init__(graph=MachineGraph(transitions=transitions))
 
 
 class LoopInvokerMachine(AbstractMachine):
@@ -129,7 +153,7 @@ class LoopInvokerMachine(AbstractMachine):
             MachineRelation(left=empty_action, right=call, label=0),
             MachineRelation(left=empty_action, right=stop, label=1),
         )
-        super().__init__(transitions=transitions)
+        super().__init__(graph=MachineGraph(transitions=transitions))
 
 
 class RandomMachine(AbstractMachine):
@@ -149,9 +173,9 @@ class RandomMachine(AbstractMachine):
         return res
 
     @staticmethod
-    def check_transitions(transitions):
+    def check_transitions(graph):
         # TODO implement this
-        vertex_mapping = AbstractMachine.get_vertex_mapping(transitions=transitions)
+        vertex_mapping = graph.vertex_mapping
 
         # vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
 
@@ -176,8 +200,8 @@ class RandomMachine(AbstractMachine):
         return True
 
     @staticmethod
-    def create_new_possible_relation(transitions):
-        vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
+    def get_new_possible_relation(graph):
+        vertices = graph.vertices
         machine_relation_to_add = []
 
         # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
@@ -186,7 +210,7 @@ class RandomMachine(AbstractMachine):
                 if index_i > index_j:
                     continue
                 new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
-                for edge in transitions:
+                for edge in graph.transitions:
                     if isinstance(edge.left, Action) and isinstance(new_machine_relation.left, Action):
                         if edge.label == edge.label:
                             new_machine_relation = None
@@ -196,10 +220,10 @@ class RandomMachine(AbstractMachine):
                         break
                 if new_machine_relation is None:
                     continue
-                transitions.append(new_machine_relation)
-                if RandomMachine.check_transitions(transitions=transitions):
+                graph.transitions.append(new_machine_relation)
+                if RandomMachine.check_transitions(graph=graph):
                     machine_relation_to_add.append(new_machine_relation)
-                transitions.pop()
+                graph.transitions.pop()
 
         assert (len(machine_relation_to_add) > 0)
         return random.choice(machine_relation_to_add)
@@ -214,12 +238,16 @@ class RandomMachine(AbstractMachine):
         transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
         transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
 
-        transitions.append(self.create_new_possible_relation(transitions=transitions))
-        transitions.append(self.create_new_possible_relation(transitions=transitions))
-        transitions.append(self.create_new_possible_relation(transitions=transitions))
-        transitions.append(self.create_new_possible_relation(transitions=transitions))
+        print(self.get_new_possible_relation(graph=MachineGraph(transitions=transitions)))
 
-        super().__init__(transitions=transitions)
+        super().__init__(MachineGraph(transitions=transitions))
+
+    @staticmethod
+    def get_random_vertex(self, env, machines_to_call=()):
+        vertex_to_add_list = [Action(action=i) for i in env.get_actions_as_dict().values()]
+        vertex_to_add_list += [Choice()]
+        vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
+        return random.choice(vertex_to_add_list)
 
 
 class AutoBasicMachine(RootMachine):
@@ -235,7 +263,7 @@ class AutoBasicMachine(RootMachine):
             transitions.append(MachineRelation(left=action, right=stop, label=0))
             transitions.append(MachineRelation(left=action, right=stop, label=1))
 
-        super().__init__(machine_to_invoke=LoopInvokerMachine(AbstractMachine(transitions=transitions)))
+        super().__init__(machine_to_invoke=LoopInvokerMachine(AbstractMachine(MachineGraph(transitions=transitions))))
 
 
 class MachineVertex:
@@ -255,7 +283,7 @@ class MachineVertex:
 class Start(MachineVertex):
     def run(self, own_machine: AbstractMachine):
         # return next vertex
-        return own_machine.vertex_mapping[self][0].right
+        return own_machine.graph.vertex_mapping[self][0].right
 
     def __str__(self):
         return "{self.__class__.__name__}{self.id}".format(**locals())
@@ -281,7 +309,7 @@ class Choice(MachineVertex):
         combined_state = own_machine.id, self.id, own_machine.params.env.get_current_state()
 
         if combined_state not in own_machine.params.q_value:
-            own_machine.params.q_value[combined_state] = {_: 0 for _ in own_machine.choice_relations[self].keys()}
+            own_machine.params.q_value[combined_state] = {_: 0 for _ in own_machine.graph.choice_relations[self].keys()}
 
         if own_machine.params.previous_machine_choice_state is not None:
             q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice]
@@ -297,7 +325,7 @@ class Choice(MachineVertex):
         own_machine.params.accumulated_rewards = 0
         own_machine.params.accumulated_discount = 1
 
-        return own_machine.choice_relations[self][action].right
+        return own_machine.graph.choice_relations[self][action].right
 
 
 class Call(MachineVertex):
@@ -309,7 +337,7 @@ class Call(MachineVertex):
         self.machine_to_call.run(own_machine.params)
 
         # return next vertex
-        return own_machine.vertex_mapping[self][0].right
+        return own_machine.graph.vertex_mapping[self][0].right
 
     def __str__(self):
         return super().__str__() + "[{self.machine_to_call}]".format(**locals())
@@ -335,7 +363,7 @@ class Action(MachineVertex):
             own_machine.params.accumulated_discount *= own_machine.params.gamma
 
         # return next vertex
-        return own_machine.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
+        return own_machine.graph.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
 
 
 class MachineRelation:
@@ -391,7 +419,7 @@ def main():
 
     stop = Stop()
     simple_machine = AbstractMachine(
-        transitions=(
+        MachineGraph(transitions=(
             MachineRelation(left=start, right=choice_one),
             MachineRelation(left=choice_one, right=left),
             MachineRelation(left=choice_one, right=right),
@@ -413,7 +441,7 @@ def main():
             MachineRelation(left=down, right=stop, label=1),
             MachineRelation(left=on, right=stop, label=1),
             MachineRelation(left=off, right=stop, label=1),
-        ),
+        ), )
     )
 
     root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))

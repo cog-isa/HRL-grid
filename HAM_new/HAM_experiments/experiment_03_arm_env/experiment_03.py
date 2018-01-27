@@ -1,4 +1,5 @@
-from HAM_new.HAM_core import AutoBasicMachine, RootMachine, LoopInvokerMachine, AbstractMachine, Start, Choice, Action, Stop, MachineRelation, Call
+from HAM_new.HAM_core import AutoBasicMachine, RootMachine, LoopInvokerMachine, AbstractMachine, Start, Choice, Action, Stop, MachineRelation, Call, \
+    MachineGraph
 from HAM_new.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
 from environments.arm_env.arm_env import ArmEnv
 
@@ -53,7 +54,7 @@ pull_up_transitions = (
     MachineRelation(left=pull_up_up_03, right=pull_up_stop, label=1),
     MachineRelation(left=pull_up_up_04, right=pull_up_stop, label=1),
 )
-pull_up = AbstractMachine(transitions=pull_up_transitions)
+pull_up = AbstractMachine(MachineGraph(transitions=pull_up_transitions))
 
 start = Start()
 choice_one = Choice()
@@ -83,7 +84,7 @@ transitions = (
     MachineRelation(left=off, right=stop, label=1),
 )
 
-pull_up_machine = RootMachine(machine_to_invoke=LoopInvokerMachine(AbstractMachine(transitions=transitions)))
+pull_up_machine = RootMachine(machine_to_invoke=LoopInvokerMachine(AbstractMachine(MachineGraph(transitions=transitions))))
 
 params = HAMParamsCommon(env)
 ham_runner(ham=pull_up_machine, num_episodes=num_episodes, env=env, params=params)
