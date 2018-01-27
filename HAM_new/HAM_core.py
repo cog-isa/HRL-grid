@@ -173,35 +173,36 @@ class RandomMachine(AbstractMachine):
         return res
 
     @staticmethod
-    def check_transitions(graph):
+    def check_graph(graph):
         # TODO implement this
-        vertex_mapping = graph.vertex_mapping
 
         # vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
 
-        for vertex in vertex_mapping:
+        for vertex in graph.vertices:
             if isinstance(vertex, Call):
-                if len(vertex_mapping[vertex]) != 1:
-                    return False
+                # if len(vertex_mapping[vertex]) != 1:
+                #     return False
+                pass
             elif isinstance(vertex, Action):
                 pass
             elif isinstance(vertex, Choice):
                 pass
             elif isinstance(vertex, Stop):
-                if len(vertex_mapping[vertex]) != 0:
+                pass
+                if vertex in graph.vertex_mapping and len(graph.vertex_mapping[vertex]) > 0:
                     return False
             elif isinstance(vertex, Start):
-                if len(vertex_mapping[vertex]) != 1:
-                    return False
+                pass
+                # if len(vertex_mapping[vertex]) != 1:
+                #     return False
             else:
                 raise KeyError
 
         # p = AbstractMachine.get_action_vertex_label_mapping(transitions=transitions)
         return True
 
-    @staticmethod
-    def get_new_possible_relation(graph):
-        vertices = graph.vertices
+    def get_new_possible_relation(self):
+        vertices = self.graph.vertices
         machine_relation_to_add = []
 
         # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
@@ -210,44 +211,45 @@ class RandomMachine(AbstractMachine):
                 if index_i > index_j:
                     continue
                 new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
-                for edge in graph.transitions:
+                for edge in self.graph.transitions:
+                    # check for duplicate actions
                     if isinstance(edge.left, Action) and isinstance(new_machine_relation.left, Action):
                         if edge.label == edge.label:
                             new_machine_relation = None
                             break
+                    # check for duplicate in other relations
                     if edge.left == new_machine_relation.left and edge.right == new_machine_relation.right and edge.label == new_machine_relation.label:
                         new_machine_relation = None
                         break
                 if new_machine_relation is None:
                     continue
-                graph.transitions.append(new_machine_relation)
-                if RandomMachine.check_transitions(graph=graph):
+                self.graph.transitions.append(new_machine_relation)
+                if RandomMachine.check_graph(graph=self.graph):
                     machine_relation_to_add.append(new_machine_relation)
-                graph.transitions.pop()
+                self.graph.transitions.pop()
 
         assert (len(machine_relation_to_add) > 0)
         return random.choice(machine_relation_to_add)
 
-    def __init__(self, env: CoreEnv, machines_to_call=()):
-        start = Start()
-        stop = Stop()
+    def __init__(self, graph=None):
+        if graph is None:
+            graph = MachineGraph(transitions=[], vertices=[Start(), Stop()])
+        super().__init__(graph=graph)
 
-        transitions = [MachineRelation(left=start, right=stop)]
+    # @staticmethod
+    # def get_random_vertex(self, env, machines_to_call=()):
+    #     vertex_to_add_list = [Action(action=i) for i in env.get_actions_as_dict().values()]
+    #     vertex_to_add_list += [Choice()]
+    #     vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
+    #     return random.choice(vertex_to_add_list)
 
-        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
-        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
-        transitions.append(MachineRelation(left=None, right=self.create_random_vertex(env=env, machines_to_call=machines_to_call)))
+    def with_new_vertex(self, env, machines_to_call=()):
+        new_vertex = self.create_random_vertex(env=env, machines_to_call=machines_to_call)
+        return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices + [new_vertex]))
 
-        print(self.get_new_possible_relation(graph=MachineGraph(transitions=transitions)))
-
-        super().__init__(MachineGraph(transitions=transitions))
-
-    @staticmethod
-    def get_random_vertex(self, env, machines_to_call=()):
-        vertex_to_add_list = [Action(action=i) for i in env.get_actions_as_dict().values()]
-        vertex_to_add_list += [Choice()]
-        vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
-        return random.choice(vertex_to_add_list)
+    def with_new_relation(self):
+        new_relation = self.get_new_possible_relation()
+        return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions + [new_relation], vertices=self.graph.vertices))
 
 
 class AutoBasicMachine(RootMachine):

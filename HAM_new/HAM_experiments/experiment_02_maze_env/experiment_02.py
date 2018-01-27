@@ -8,5 +8,39 @@ from utils.graph_drawer import draw_graph
 # env = ArmEnv(size_x=3, size_y=3, cubes_cnt=3, episode_max_length=100, finish_reward=100, action_minus_reward=1, tower_target_size=3)
 env = MazeWorldEpisodeLength(maze=maze_world_input_01())
 
-machine = RandomMachine(env)
-draw_graph("random_machine", machine.get_graph_to_draw())
+new_machine = RandomMachine().with_new_vertex(env=env)
+new_machine = new_machine.with_new_vertex(env=env)
+new_machine = new_machine.with_new_vertex(env=env)
+new_machine = new_machine.with_new_vertex(env=env)
+new_machine = new_machine.with_new_vertex(env=env)
+new_machine = new_machine.with_new_vertex(env=env)
+
+try:
+    new_machine = new_machine.with_new_relation()
+except AssertionError:
+    pass
+draw_graph("1", new_machine.get_graph_to_draw())
+
+try:
+    new_machine = new_machine.with_new_relation()
+except AssertionError:
+    pass
+draw_graph("2", new_machine.get_graph_to_draw())
+
+try:
+    new_machine = new_machine.with_new_relation()
+except AssertionError:
+    pass
+draw_graph("3", new_machine.get_graph_to_draw())
+
+try:
+    new_machine = new_machine.with_new_relation()
+except AssertionError:
+    pass
+draw_graph("4", new_machine.get_graph_to_draw())
+
+try:
+    new_machine = new_machine.with_new_relation()
+except AssertionError:
+    pass
+draw_graph("5", new_machine.get_graph_to_draw())
