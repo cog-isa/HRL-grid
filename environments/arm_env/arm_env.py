@@ -59,14 +59,14 @@ class ArmEnv(CoreEnv):
 
     def grid_to_bin(self):
         grid = np.array(self._grid, copy=True)
-        grid[self._arm_x, self._arm_y] = 2
-        res = 0
-        for x in np.nditer(grid):
-            res = res * 10 + int(x)
-        res = res * 10 + self._magnet_toggle
-        if res not in self.grid_to_id:
-            self.grid_to_id[res] = len(self.grid_to_id)
-        return self.grid_to_id[res]
+        if self._magnet_toggle:
+            grid[self._arm_x, self._arm_y] = 2
+        else:
+            grid[self._arm_x, self._arm_y] = 3
+        s = []
+        for i in np.nditer(grid):
+            s.append(int(i))
+        return tuple(s)
 
     def _step(self, a):
 
