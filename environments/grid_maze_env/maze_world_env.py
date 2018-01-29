@@ -128,6 +128,9 @@ class MazeWorldEpisodeLength(CoreEnv, discrete.DiscreteEnv):
         super(MazeWorldEpisodeLength, self).__init__(max_state_id, number_of_actions, prob, isd)
 
     def _step(self, a):
+        assert (not self._is_done), "Environment already finished"
+
+
         transitions = self.P[self._current_state][a]
         i = self.categorical_sample([t[0] for t in transitions], self.np_random)
         p, s, r, d = transitions[i]
