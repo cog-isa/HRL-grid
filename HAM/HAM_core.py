@@ -3,7 +3,6 @@ import operator
 import sys
 
 from environments.arm_env.arm_env import ArmEnv
-from environments.env_core import CoreEnv
 from utils import plotting
 
 
@@ -65,24 +64,8 @@ class MachineGraph:
 class AbstractMachine:
     free_id = 1
 
-    # @staticmethod
-    # def get_vertex_mapping(transitions):
-    #     return {_: [i for i in transitions if i.left == _] for _ in set([i.left for i in transitions if i.left is not None])}
-    #
-    # @staticmethod
-    # def get_action_vertex_label_mapping(transitions):
-    #     return {_: {__.label: __ for __ in AbstractMachine.get_vertex_mapping(transitions)[_]} for _ in
-    #             set([i.left for i in transitions if isinstance(i.left, Action)])}
-
     def __init__(self, graph: MachineGraph):
         self.graph = graph
-
-        # self.vertex_mapping = self.get_vertex_mapping(transitions=transitions)
-
-        # self.action_vertex_label_mapping = self.get_action_vertex_label_mapping(transitions=transitions)
-
-        # choice to relations_vertex id's mapping
-        # self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
 
         self.params = None
         self.get_on_model_transition_id = None
@@ -235,13 +218,6 @@ class RandomMachine(AbstractMachine):
         if graph is None:
             graph = MachineGraph(transitions=[], vertices=[Start(), Stop()])
         super().__init__(graph=graph)
-
-    # @staticmethod
-    # def get_random_vertex(self, env, machines_to_call=()):
-    #     vertex_to_add_list = [Action(action=i) for i in env.get_actions_as_dict().values()]
-    #     vertex_to_add_list += [Choice()]
-    #     vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
-    #     return random.choice(vertex_to_add_list)
 
     def with_new_vertex(self, env, machines_to_call=()):
         new_vertex = self.create_random_vertex(env=env, machines_to_call=machines_to_call)
