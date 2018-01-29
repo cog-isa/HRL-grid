@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import sys
 
-from HAM_new.HAM_core import HAMParams
+from HAM.HAM_core import HAMParams
 from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, prepare_maze
 from utils import plotting
 

@@ -1,6 +1,6 @@
-from HAM_new.HAM_core import AutoBasicMachine, RootMachine, LoopInvokerMachine, AbstractMachine, Start, Choice, Action, Stop, MachineRelation, Call, \
+from HAM.HAM_core import AutoBasicMachine, RootMachine, LoopInvokerMachine, AbstractMachine, Start, Choice, Action, Stop, MachineRelation, Call, \
     MachineGraph
-from HAM_new.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
+from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
 from environments.arm_env.arm_env import ArmEnv
 
 to_plot = []

@@ -1,5 +1,5 @@
-from HAM_new.HAM_core import AutoBasicMachine
-from HAM_new.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
+from HAM.HAM_core import AutoBasicMachine
+from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
 from environments.grid_maze_env.maze_world_env import MazeWorld
 
 env = MazeWorld(maze_world_input_01())
