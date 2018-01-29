@@ -40,13 +40,14 @@ class HAMParams:
 class MachineGraph:
     def get_vertex_from_transitions(self):
         res = set(_.left for _ in self.transitions).union(set(_.right for _ in self.transitions))
-        # remove auxiliary empty(None) vertex
-        if None in res:
-            res.remove(None)
+
         return res
 
     def get_vertex_mapping(self):
-        return {_: [i for i in self.transitions if i.left == _] for _ in set([i.left for i in self.transitions if i.left is not None])}
+        return {_: [i for i in self.transitions if i.left == _] for _ in self.vertices}
+
+    def get_vertex_reverse_mapping(self):
+        return {_: [i for i in self.transitions if i.right == _] for _ in self.vertices}
 
     def get_action_vertex_label_mapping(self):
         return {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
@@ -56,6 +57,8 @@ class MachineGraph:
         self.transitions = transitions
         self.vertices = vertices if vertices is not None else self.get_vertex_from_transitions()
         self.vertex_mapping = self.get_vertex_mapping()
+        self.vertex_reverse_mapping = self.get_vertex_reverse_mapping()
+
         self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
         self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
                                             set([i.left for i in transitions if isinstance(i.left, Action)])}
@@ -151,65 +154,78 @@ class RandomMachine(AbstractMachine):
     def get_vertex_from_transitions(transitions):
         res = set(_.left for _ in transitions).union(set(_.right for _ in transitions))
         # remove auxiliary empty(None) vertex
-        if None in res:
-            res.remove(None)
+        # if None in res:
+        #     res.remove(None)
         return res
 
     @staticmethod
     def check_graph(graph):
         # TODO implement this
 
-        # vertices = RandomMachine.get_vertex_from_transitions(transitions=transitions)
+        # checking for duplicates
+        for index_i, item_i in enumerate(graph.transitions):
+            for index_j, item_j in enumerate(graph.transitions):
+                if index_i >= index_j:
+                    continue
+                if item_i == item_j:
+                    return False
 
         for vertex in graph.vertices:
             if isinstance(vertex, Call):
-                # if len(vertex_mapping[vertex]) != 1:
-                #     return False
-                pass
+                if len(graph.vertex_mapping[vertex]) > 1:
+                    return False
+
             elif isinstance(vertex, Action):
-                pass
+                # check for only single edge with definite label (on_model value)
+                if len(graph.vertex_mapping[vertex]) > len(set(_.label for _ in graph.vertex_mapping[vertex])):
+                    return False
             elif isinstance(vertex, Choice):
                 pass
             elif isinstance(vertex, Stop):
-                pass
-                if vertex in graph.vertex_mapping and len(graph.vertex_mapping[vertex]) > 0:
+                # no edges from Stop instance
+                if len(graph.vertex_mapping[vertex]) > 0:
                     return False
             elif isinstance(vertex, Start):
-                pass
-                # if len(vertex_mapping[vertex]) != 1:
-                #     return False
+                # no input edges for Start instance
+                if len(graph.vertex_reverse_mapping[vertex]) > 0:
+                    return False
+                # single outer edge from Start instance
+                if len(graph.vertex_mapping[vertex]) > 1:
+                    return False
+                if len(graph.vertex_mapping[vertex]) == 1 and isinstance(graph.vertex_mapping[vertex][0].right, Stop):
+                    return False
             else:
                 raise KeyError
 
         # p = AbstractMachine.get_action_vertex_label_mapping(transitions=transitions)
         return True
 
+    @staticmethod
+    def get_reachable_vertices(graph, vertices_to_go_from, reachable=None):
+        if reachable is None:
+            reachable = set()
+        for vertex in vertices_to_go_from:
+            if vertex in reachable:
+                continue
+            reachable.add(vertex)
+            for relation in graph.vertex_mapping[vertex]:
+                vertex_to_go = relation.right
+                RandomMachine.get_reachable_vertices(graph, [vertex_to_go], reachable)
+        return reachable
+
     def get_new_possible_relation(self):
-        vertices = self.graph.vertices
+        # vertices = self.graph.vertices
         machine_relation_to_add = []
 
         # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
-        for index_i, left in enumerate(vertices):
-            for index_j, right in enumerate(vertices):
-                if index_i > index_j:
-                    continue
+        # TODO to choose first Vertex from set of reachable from Start
+        reachable_vertices = RandomMachine.get_reachable_vertices(graph=self.graph,
+                                                                  vertices_to_go_from=(_ for _ in self.graph.vertices if (isinstance(_, Start))))
+        for index_i, left in enumerate(reachable_vertices):
+            for index_j, right in enumerate(self.graph.vertices):
                 new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
-                for edge in self.graph.transitions:
-                    # check for duplicate actions
-                    if isinstance(edge.left, Action) and isinstance(new_machine_relation.left, Action):
-                        if edge.label == edge.label:
-                            new_machine_relation = None
-                            break
-                    # check for duplicate in other relations
-                    if edge.left == new_machine_relation.left and edge.right == new_machine_relation.right and edge.label == new_machine_relation.label:
-                        new_machine_relation = None
-                        break
-                if new_machine_relation is None:
-                    continue
-                self.graph.transitions.append(new_machine_relation)
-                if RandomMachine.check_graph(graph=self.graph):
+                if RandomMachine.check_graph(graph=MachineGraph(transitions=self.graph.transitions + [new_machine_relation], vertices=self.graph.vertices)):
                     machine_relation_to_add.append(new_machine_relation)
-                self.graph.transitions.pop()
 
         assert (len(machine_relation_to_add) > 0)
         return random.choice(machine_relation_to_add)
@@ -225,7 +241,15 @@ class RandomMachine(AbstractMachine):
 
     def with_new_relation(self):
         new_relation = self.get_new_possible_relation()
-        return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions + [new_relation], vertices=self.graph.vertices))
+        # add Action(on_model_done) transition to STOP
+        transitions = self.graph.transitions + [new_relation]
+        stop = [_ for _ in self.graph.vertices if isinstance(_, Stop)][0]
+        for vertex in self.graph.vertices:
+            if isinstance(vertex, Action):
+                if 0 not in self.graph.action_vertex_label_mapping.values():
+                    transitions.append(MachineRelation(left=vertex, right=stop, label=1))
+
+        return RandomMachine(graph=MachineGraph(transitions=transitions, vertices=self.graph.vertices))
 
 
 class AutoBasicMachine(RootMachine):
@@ -357,6 +381,13 @@ class MachineRelation:
 
         # set unique id for MachineRelation object
         self.id, MachineRelation.free_id = MachineRelation.free_id, MachineRelation.free_id + 1
+
+    def __eq__(self, other):
+        if self.id == other.id:
+            return True
+        if self.right == other.right and self.left == other.left and self.label == other.label:
+            return True
+        return False
 
     def __str__(self):
         return str(self.left) + " -> " + str(self.right)

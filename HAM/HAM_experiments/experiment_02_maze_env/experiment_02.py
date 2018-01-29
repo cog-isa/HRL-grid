@@ -5,42 +5,31 @@ from environments.arm_env.arm_env import ArmEnv
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
 from utils.graph_drawer import draw_graph
 
+to_plot = []
 # env = ArmEnv(size_x=3, size_y=3, cubes_cnt=3, episode_max_length=100, finish_reward=100, action_minus_reward=1, tower_target_size=3)
-env = MazeWorldEpisodeLength(maze=maze_world_input_01())
+for test in range(50):
+    print("test:", test)
+    env = MazeWorldEpisodeLength(maze=maze_world_input_01())
 
-new_machine = RandomMachine().with_new_vertex(env=env)
-new_machine = new_machine.with_new_vertex(env=env)
-new_machine = new_machine.with_new_vertex(env=env)
-new_machine = new_machine.with_new_vertex(env=env)
-new_machine = new_machine.with_new_vertex(env=env)
-new_machine = new_machine.with_new_vertex(env=env)
+    for _ in range(5):
+        new_machine = RandomMachine().with_new_vertex(env=env)
+    for _ in range(15):
+        try:
+            new_machine = new_machine.with_new_relation()
+        except AssertionError:
+            pass
 
-try:
-    new_machine = new_machine.with_new_relation()
-except AssertionError:
-    pass
-draw_graph("1", new_machine.get_graph_to_draw())
+    draw_graph(str(test), new_machine.get_graph_to_draw())
 
-try:
-    new_machine = new_machine.with_new_relation()
-except AssertionError:
-    pass
-draw_graph("2", new_machine.get_graph_to_draw())
+    num_episodes = 400
 
-try:
-    new_machine = new_machine.with_new_relation()
-except AssertionError:
-    pass
-draw_graph("3", new_machine.get_graph_to_draw())
+    params = HAMParamsCommon(env)
+    try:
+        ham_runner(ham=RootMachine(machine_to_invoke=LoopInvokerMachine(new_machine)), num_episodes=num_episodes, env=env, params=params)
+        to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="Random" + str(test + 1)))
+    except KeyError:
+        print("keyError")
+    except AssertionError:
+        print("assertation")
 
-try:
-    new_machine = new_machine.with_new_relation()
-except AssertionError:
-    pass
-draw_graph("4", new_machine.get_graph_to_draw())
-
-try:
-    new_machine = new_machine.with_new_relation()
-except AssertionError:
-    pass
-draw_graph("5", new_machine.get_graph_to_draw())
+plot_multi(to_plot)
