@@ -51,7 +51,3 @@ In the file `grid_maze_generator.py` there is methods for automatic generation o
 
 In which instead of empty points ```.``` additional walls ```O``` can be specified.. 
 In the file `random_policy.py` there is an example of interaction with the environment. And after the end of the work schedules are drawn. It is possible to display the state of the environment at the current time.
-
-## Getting Started
-
-Run the file `random_policy.py`, which will show an example of interaction with the environment. To add your own strategy proposes to understand the structure of this file.

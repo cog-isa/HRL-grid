@@ -37,6 +37,11 @@ numpy
 pygraphviz
 ```
 
+## Getting Started
+
+
+Run the file [`q-policy.py`](https://github.com/cog-isa/HRL-grid/blob/master/environments/q-policy.py), which will show an example of interaction on both environments with q-learning and random policy. 
+
 ## Authors
 
 * **Alexander Panov** - *Project management* - [grafft](https://github.com/grafft)
