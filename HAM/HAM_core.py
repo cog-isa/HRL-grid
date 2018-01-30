@@ -53,6 +53,19 @@ class MachineGraph:
         return {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
                 set([i.left for i in self.transitions if isinstance(i.left, Action)])}
 
+    def get_special_vertices(self, special_vertex_class):
+        return list(filter(lambda x: isinstance(x, special_vertex_class), self.vertices))
+
+    def get_start(self):
+        res = self.get_special_vertices(Start)
+        assert (len(res) == 1)
+        return res[0]
+
+    def get_stop(self):
+        res = self.get_special_vertices(Stop)
+        assert (len(res) == 1)
+        return res[0]
+
     def __init__(self, transitions, vertices=None):
         self.transitions = transitions
         self.vertices = vertices if vertices is not None else self.get_vertex_from_transitions()
@@ -60,7 +73,7 @@ class MachineGraph:
         self.vertex_reverse_mapping = self.get_vertex_reverse_mapping()
 
         self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
-        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.get_vertex_mapping()[_]} for _ in
+        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.vertex_mapping[_]} for _ in
                                             set([i.left for i in transitions if isinstance(i.left, Action)])}
 
 
@@ -98,15 +111,35 @@ class AbstractMachine:
         while not isinstance(current_vertex, Stop):
             current_vertex = current_vertex.run(self)
 
-    def get_graph_to_draw(self, already_added_machines=set()):
+    def get_graph_to_draw(self, action_to_name_mapping=None, already_added_machines=None):
+        if already_added_machines is None:
+            already_added_machines = set()
         graph = []
         for i in self.graph.transitions:
-            graph.append((str(i.left), str(i.right), "f(E)=" + str(i.label) if i.label is not None else ""))
+            if isinstance(i.left, Action) and i.label == 1:
+                continue
+
+            def get_str_with_special_for_actions(vertex):
+                if isinstance(vertex, Action):
+                    res = str(vertex)
+                    for action_id, action_name in enumerate(action_to_name_mapping):
+                        res = res.replace("({action_id})".format(**locals()), "({action_name})".format(**locals()))
+                    return res
+                else:
+                    return str(vertex)
+
+            left_vertex = get_str_with_special_for_actions(i.left)
+            right_vertex = get_str_with_special_for_actions(i.right)
+
+            graph.append((left_vertex, right_vertex, "f(E)=" + str(i.label) if i.label is not None else ""))
+
         for i in self.graph.transitions:
+
             if isinstance(i.right, Call):
                 if i.right not in already_added_machines:
                     already_added_machines.add(i.right)
-                    graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines)
+                    graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines=already_added_machines,
+                                                                              action_to_name_mapping=action_to_name_mapping)
         return graph
 
     def __str__(self):
@@ -192,8 +225,8 @@ class RandomMachine(AbstractMachine):
                 # single outer edge from Start instance
                 if len(graph.vertex_mapping[vertex]) > 1:
                     return False
-                if len(graph.vertex_mapping[vertex]) == 1 and isinstance(graph.vertex_mapping[vertex][0].right, Stop):
-                    return False
+                    # if len(graph.vertex_mapping[vertex]) == 1 and isinstance(graph.vertex_mapping[vertex][0].right, Stop):
+                    #     return False
             else:
                 raise KeyError
 
@@ -201,16 +234,14 @@ class RandomMachine(AbstractMachine):
         return True
 
     @staticmethod
-    def get_reachable_vertices(graph, vertices_to_go_from, reachable=None):
+    def dfs_get_reachable_vertices(graph, vertex, reachable=None):
         if reachable is None:
             reachable = set()
-        for vertex in vertices_to_go_from:
-            if vertex in reachable:
-                continue
-            reachable.add(vertex)
-            for relation in graph.vertex_mapping[vertex]:
-                vertex_to_go = relation.right
-                RandomMachine.get_reachable_vertices(graph, [vertex_to_go], reachable)
+        if vertex in reachable:
+            return reachable
+        reachable.add(vertex)
+        for relation in graph.vertex_mapping[vertex]:
+            RandomMachine.dfs_get_reachable_vertices(graph=graph, vertex=relation.right, reachable=reachable)
         return reachable
 
     def get_new_possible_relation(self):
@@ -219,8 +250,7 @@ class RandomMachine(AbstractMachine):
 
         # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
         # TODO to choose first Vertex from set of reachable from Start
-        reachable_vertices = RandomMachine.get_reachable_vertices(graph=self.graph,
-                                                                  vertices_to_go_from=(_ for _ in self.graph.vertices if (isinstance(_, Start))))
+        reachable_vertices = RandomMachine.dfs_get_reachable_vertices(graph=self.graph, vertex=self.graph.get_start())
         for index_i, left in enumerate(reachable_vertices):
             for index_j, right in enumerate(self.graph.vertices):
                 new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
@@ -240,16 +270,16 @@ class RandomMachine(AbstractMachine):
         return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices + [new_vertex]))
 
     def with_new_relation(self):
-        new_relation = self.get_new_possible_relation()
-        # add Action(on_model_done) transition to STOP
-        transitions = self.graph.transitions + [new_relation]
-        stop = [_ for _ in self.graph.vertices if isinstance(_, Stop)][0]
-        for vertex in self.graph.vertices:
+        res = RandomMachine(graph=MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices))
+        stop = res.graph.get_stop()
+        # added to Action vertices link to the Stop with on_model env_done
+        for vertex in res.graph.vertices:
             if isinstance(vertex, Action):
-                if 0 not in self.graph.action_vertex_label_mapping.values():
-                    transitions.append(MachineRelation(left=vertex, right=stop, label=1))
+                if (vertex in res.graph.action_vertex_label_mapping and 1 not in res.graph.action_vertex_label_mapping[
+                    vertex]) or vertex not in res.graph.action_vertex_label_mapping:
+                    res.graph.transitions.append(MachineRelation(left=vertex, right=stop, label=1))
 
-        return RandomMachine(graph=MachineGraph(transitions=transitions, vertices=self.graph.vertices))
+        return res
 
 
 class AutoBasicMachine(RootMachine):
