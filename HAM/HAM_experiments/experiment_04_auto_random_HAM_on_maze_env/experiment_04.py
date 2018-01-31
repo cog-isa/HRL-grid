@@ -1,3 +1,5 @@
+import random
+
 from HAM.HAM_core import AutoBasicMachine, AbstractMachine, Start, Choice, Stop, Action, Call, RootMachine, LoopInvokerMachine, MachineRelation, \
     RandomMachine, MachineGraph
 from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
@@ -34,17 +36,22 @@ def get_reachable_vertices_dfs(graph, vertices_to_go_from, reachable=None):
     return reachable
 
 
+
+
 for test in range(500):
     print('\n', "*******" * 5)
     print("test:{test}".format(**locals()), end="\n\n")
-    maze = generate_maze_please(size_x=2, size_y=2)
-    env = MazeWorldEpisodeLength(maze)
-    # draw_maze(maze)
 
+    env = MazeWorldEpisodeLength(generate_maze_please(size_x=2, size_y=2))
+    # env = MazeWorldEpisodeLength(maze=maze_world_input_01(), episode_max_length=400, finish_reward=500)
+    # draw_maze(generate_maze_please(size_x=2, size_y=2))
+    num_episodes = 800
+    number_of_vertex = random.randrange(1, 8)
+    number_of_edges = random.randrange(1, 12)
     new_machine = RandomMachine().with_new_vertex(env=env)
-    for _ in range(6):
+    for _ in range(number_of_vertex):
         new_machine = new_machine.with_new_vertex(env=env)
-    for _ in range(12):
+    for _ in range(number_of_edges):
         try:
             new_machine = new_machine.with_new_relation()
         except AssertionError:
@@ -53,9 +60,13 @@ for test in range(500):
     dfs_check_graph_for_no_action_loops(graph=new_machine.graph, current_vertex=new_machine.graph.get_start(), visited=[], ok=ok,
                                         action_vertex_was_visited=False)
     # TODO filter graphs with loops on Choice vertex
+    # graph is consider as correct:
+    # first - if we can reach each vertex from Start
+    # second - if we can reach each vertex from Stop, going over edges with reversed order
+
     if new_machine.graph.get_stop() in ok:
 
-        num_episodes = 1400
+
 
         params = HAMParamsCommon(env)
         try:
