@@ -1,6 +1,7 @@
 import random
 
-from HAM.HAM_core import AutoBasicMachine, AbstractMachine, Start, Choice, Stop, Action, Call, RootMachine, LoopInvokerMachine, MachineRelation, \
+from HAM.HAM_core import AutoBasicMachine, AbstractMachine, Start, Choice, Stop, Action, Call, RootMachine, \
+    LoopInvokerMachine, MachineRelation, \
     RandomMachine, MachineGraph
 from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, maze_world_input_01, plot_multi, ham_runner, PlotParams
 from environments.arm_env.arm_env import ArmEnv
@@ -23,19 +24,15 @@ def dfs_check_graph_for_no_action_loops(graph: MachineGraph, current_vertex, vis
             dfs_check_graph_for_no_action_loops(graph, to, visited, ok, action_vertex_was_visited)
 
 
-def get_reachable_vertices_dfs(graph, vertices_to_go_from, reachable=None):
-    if reachable is None:
-        reachable = set()
-    for vertex in vertices_to_go_from:
-        if vertex in reachable:
-            continue
-        reachable.add(vertex)
-        for relation in graph.vertex_mapping[vertex]:
-            vertex_to_go = relation.right
-            RandomMachine.dfs_get_reachable_vertices(graph, [vertex_to_go], reachable)
-    return reachable
-
-
+def dfs_distinct_from_start(graph: MachineGraph, vertex, visited, reversed_order=None):
+    if vertex in visited:
+        return
+    visited.append(vertex)
+    mapping = graph.vertex_mapping if reversed_order is None else graph.vertex_reverse_mapping
+    for relation in mapping[vertex]:
+        to = relation.right if reversed_order is None else relation.left
+        dfs_distinct_from_start(graph=graph, vertex=to, visited=visited)
+    return visited
 
 
 for test in range(500):
@@ -51,29 +48,45 @@ for test in range(500):
     new_machine = RandomMachine().with_new_vertex(env=env)
     for _ in range(number_of_vertex):
         new_machine = new_machine.with_new_vertex(env=env)
-    for _ in range(number_of_edges):
+    for __ in range(number_of_edges):
         try:
             new_machine = new_machine.with_new_relation()
         except AssertionError:
             pass
     ok = []
-    dfs_check_graph_for_no_action_loops(graph=new_machine.graph, current_vertex=new_machine.graph.get_start(), visited=[], ok=ok,
+    dfs_check_graph_for_no_action_loops(graph=new_machine.graph, current_vertex=new_machine.graph.get_start(),
+                                        visited=[], ok=ok,
                                         action_vertex_was_visited=False)
+    x = dfs_distinct_from_start(graph=new_machine.graph, vertex=new_machine.graph.get_start(), visited=[])
+    y = dfs_distinct_from_start(graph=new_machine.graph, vertex=new_machine.graph.get_stop(), visited=[],
+                                reversed_order=True)
+    print("X: from start")
+    for i in set(x):
+        print(i)
+    print("Y: from start")
+    for i in set(y):
+        print(i)
+
+    if set(x) == set(y):
+        print("GRAPH ok")
+    draw_graph("pics/" + str(test),
+               new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
+    exit(0)
     # TODO filter graphs with loops on Choice vertex
     # graph is consider as correct:
     # first - if we can reach each vertex from Start
     # second - if we can reach each vertex from Stop, going over edges with reversed order
-
     if new_machine.graph.get_stop() in ok:
-
-
 
         params = HAMParamsCommon(env)
         try:
-            ham_runner(ham=RootMachine(machine_to_invoke=LoopInvokerMachine(new_machine)), num_episodes=num_episodes, env=env, params=params)
+            ham_runner(ham=RootMachine(machine_to_invoke=LoopInvokerMachine(new_machine)),
+                       num_episodes=num_episodes,
+                       env=env, params=params)
             to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="Random" + str(test + 1)))
             if sum(params.logs["ep_rewards"][-100:]) > 0:
-                draw_graph("pics/" + str(test), new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
+                draw_graph("pics/" + str(test),
+                           new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
             print("\n\nsum:", sum(params.logs["ep_rewards"]))
         except KeyError:
             print("keyError")
