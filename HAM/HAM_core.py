@@ -249,7 +249,6 @@ class RandomMachine(AbstractMachine):
         machine_relation_to_add = []
 
         # simple algorithm with complexity O(N^4) [one can done that with 0(N^2) complexity], but complexity is likely not an bottleneck in this case
-        # TODO to choose first Vertex from set of reachable from Start
         reachable_vertices = RandomMachine.dfs_get_reachable_vertices(graph=self.graph, vertex=self.graph.get_start())
         for index_i, left in enumerate(reachable_vertices):
             for index_j, right in enumerate(self.graph.vertices):
@@ -273,12 +272,10 @@ class RandomMachine(AbstractMachine):
         res = RandomMachine(graph=MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices))
         stop = res.graph.get_stop()
         # added to Action vertices link to the Stop with on_model env_done
-        for vertex in res.graph.vertices:
-            if isinstance(vertex, Action):
-                if (vertex in res.graph.action_vertex_label_mapping and 1 not in res.graph.action_vertex_label_mapping[
-                    vertex]) or vertex not in res.graph.action_vertex_label_mapping:
-                    res.graph.transitions.append(MachineRelation(left=vertex, right=stop, label=1))
-
+        for vertex in [_ for _ in res.graph.vertices if isinstance(_, Action)]:
+            if (vertex in res.graph.action_vertex_label_mapping and 1 not in res.graph.action_vertex_label_mapping[vertex]) \
+                    or vertex not in res.graph.action_vertex_label_mapping:
+                res.graph.transitions.append(MachineRelation(left=vertex, right=stop, label=1))
         return res
 
 
