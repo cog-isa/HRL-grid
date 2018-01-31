@@ -272,6 +272,7 @@ class RandomMachine(AbstractMachine):
         res = RandomMachine(graph=MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices))
         stop = res.graph.get_stop()
         # added to Action vertices link to the Stop with on_model env_done
+        # TODO don't create links between unused vertex and Stop
         for vertex in [_ for _ in res.graph.vertices if isinstance(_, Action)]:
             if (vertex in res.graph.action_vertex_label_mapping and 1 not in res.graph.action_vertex_label_mapping[vertex]) \
                     or vertex not in res.graph.action_vertex_label_mapping:
