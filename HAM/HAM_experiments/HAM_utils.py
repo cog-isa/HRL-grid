@@ -2,9 +2,10 @@ from collections import namedtuple
 
 import sys
 
-from HAM.HAM_core import HAMParams
+from HAM.HAM_core import HAMParams, RandomMachine, LoopInvokerMachine, RootMachine
 from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, prepare_maze
 from utils import plotting
+from utils.graph_drawer import draw_graph
 
 
 class HAMParamsCommon(HAMParams):
@@ -52,4 +53,20 @@ def ham_runner(ham, num_episodes, env, params):
             sys.stdout.flush()
 
 
+def draw_system_machines():
+    s1 = RandomMachine()
+    s2 = LoopInvokerMachine(machine_to_invoke=s1)
+    s3 = RootMachine(machine_to_invoke=s2)
+
+    draw_graph("full_hie", s3.get_graph_to_draw())
+
+
 PlotParams = namedtuple("PlotParams", ["curve_to_draw", "label"])
+
+
+def main():
+    draw_system_machines()
+
+
+if __name__ == '__main__':
+    main()
