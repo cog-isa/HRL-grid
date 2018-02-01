@@ -1,10 +1,5 @@
 import random
-from collections import namedtuple, defaultdict
-
-import itertools
-
-import numpy as np
-import sys
+from collections import namedtuple
 
 from HAM.HAM_core import RandomMachine, MachineGraph, Start, Stop, Action, AutoBasicMachine, MachineRelation, Choice, Call, AbstractMachine, LoopInvokerMachine, \
     RootMachine
@@ -12,62 +7,11 @@ from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, ham_runner, plot_mult
 from HAM.HAM_experiments.experiment_04_auto_random_HAM_on_maze_env.experiment_04 import is_it_machine_runnable
 from environments.arm_env.arm_env import ArmEnv
 from environments.env_core import CoreEnv
-from environments.grid_maze_env.grid_maze_generator import generate_maze_please
-from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
 from utils.graph_drawer import draw_graph
 
 
 # maze = generate_maze_please(size_x=2, size_y=2)
 # env = MazeWorldEpisodeLength(maze=maze,finish_reward=1000)
-
-def arg_max_action(q_dict, state, action_space):
-    result_action = 0
-    for action_to in range(action_space):
-        if q_dict[state, action_to] > q_dict[state, result_action]:
-            result_action = action_to
-    return result_action
-
-
-def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
-    to_plot = []
-
-    # initialize q-function
-    q_table = defaultdict(lambda: 0)
-
-    for i_episode in range(num_episodes):
-        # Print out which episode we're on, useful for debugging.
-        ep_reward = 0
-        if (i_episode + 1) % 100 == 0:
-            print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
-            sys.stdout.flush()
-            eps = eps - 0.01 * eps
-
-        # Reset the environment and pick the first state
-        state = env.reset()
-
-        for t in itertools.count():
-            # E-greedy
-            if np.random.rand(1) < eps:
-                # choosing a random action
-                action = np.random.choice(env.action_space.n, size=1)[0]
-            else:
-                # choosing arg_max action
-                action = arg_max_action(q_dict=q_table, state=state, action_space=env.action_space.n)
-
-            next_state, reward, done, _ = env.step(action)
-            # print(q_table[state, action])
-            q_table[state, action] = (1 - alpha) * q_table[state, action] + alpha * (
-                reward + gamma * q_table[next_state, arg_max_action(q_dict=q_table, state=next_state, action_space=env.action_space.n)])
-
-            # Update statistics
-            ep_reward += reward
-
-            if done:
-                break
-
-            state = next_state
-        to_plot.append(ep_reward)
-    return to_plot, q_table
 
 
 def super_runner(call_me_maybe, env):
