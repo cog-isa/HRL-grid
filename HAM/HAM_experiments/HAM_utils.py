@@ -43,14 +43,15 @@ def plot_multi(p_params):
                              )
 
 
-def ham_runner(ham, num_episodes, env, params):
+def ham_runner(ham, num_episodes, env, params, no_output=None):
     for i_episode in range(1, num_episodes + 1):
         env.reset()
         ham.run(params)
         assert env.is_done(), "The machine is STOPPED before STOP(done) of the environment"
         if i_episode % 10 == 0:
-            print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
-            sys.stdout.flush()
+            if no_output is None:
+                print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
+                sys.stdout.flush()
 
 
 def draw_system_machines():
