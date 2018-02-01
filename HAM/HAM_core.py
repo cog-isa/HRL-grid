@@ -128,8 +128,9 @@ class AbstractMachine:
                 continue
 
             def get_str_with_special_for_actions(vertex):
-                if isinstance(vertex, Action):
+                if isinstance(vertex, Action) and action_to_name_mapping is not None:
                     res = str(vertex)
+
                     for action_name, action_id in action_to_name_mapping.items():
                         res = res.replace("({action_id})".format(**locals()), "({action_name})".format(**locals()))
                     return res
