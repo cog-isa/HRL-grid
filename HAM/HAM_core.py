@@ -188,7 +188,7 @@ class RandomMachine(AbstractMachine):
     @staticmethod
     def create_random_vertex(env, machines_to_call=()):
         vertex_to_add_list = [Action(action=i) for i in sorted(env.get_actions_as_dict().values())]
-        vertex_to_add_list += [Choice()]
+        vertex_to_add_list += [Choice(), Choice()]
         vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
         return random.choice(sorted(vertex_to_add_list, key=lambda x:x.id))
 
