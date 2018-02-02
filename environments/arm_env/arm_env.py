@@ -151,7 +151,9 @@ class ArmEnv(CoreEnv):
 
         return self._get_obs()
 
-    def _render(self, mode='human', close='false'):
+    def _render(self, mode='human', close=False):
+        if close:
+            return
         outfile = sys.stdout
 
         out = np.array(self._grid, copy=True)
