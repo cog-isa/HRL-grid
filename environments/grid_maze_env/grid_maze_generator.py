@@ -25,8 +25,8 @@ def generate_pattern(pattern_id):
 
 
 def draw_maze(maze):
-    cmap = colors.ListedColormap(['white', 'darkgreen'])
-    bounds = [0, 1, 40]
+    cmap = colors.ListedColormap(['white', 'darkgreen', "red", "blue"])
+    bounds = [0, 1, 2, 3, 40]
     norm = colors.BoundaryNorm(bounds, cmap.N)
     fig, ax = plt.subplots()
     ax.imshow(maze, cmap=cmap, norm=norm)
