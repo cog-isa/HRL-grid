@@ -48,7 +48,6 @@ class ArmEnv(CoreEnv):
         self.reset()
 
         self.action_space = spaces.Discrete(6)
-        self.observation_space = spaces.Discrete(6)
         self.grid_to_id = {}
 
     def ok(self, x, y):
