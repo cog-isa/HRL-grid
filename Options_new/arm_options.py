@@ -14,6 +14,23 @@ class ArmEnvOpt(ArmEnv):
     def _get_obs(self):
         pass
 
+    def get_tower_height(self):
+        h = 0
+        for j in range(self._grid.shape[1]):
+            t = 0
+            for i in np.arange(self._grid.shape[0]-1, 0, -1):
+                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0:
+                    if i+1 == self._grid.shape[0]:
+                        t = self._grid.shape[0] - i
+                        break
+                    else:
+                        if self._grid[i+1, j] == 1:
+                            t = self._grid.shape[0] - i
+                            break
+            if t > h:
+                h = t
+        return h
+
     # return: (states, observations)
     def _reset(self):
         self._episode_length = 0
@@ -22,7 +39,8 @@ class ArmEnvOpt(ArmEnv):
         self._magnet_toggle = False
         self._current_state = 0
 
-        arm_pos = list(product(*[np.arange(self._size_x), np.arange(self._size_y)]))
+        # cartesian product
+        # arm_pos = list(product(*[np.arange(self._size_x), np.arange(self._size_y)]))
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
@@ -30,11 +48,15 @@ class ArmEnvOpt(ArmEnv):
                 break
             cubes_left -= 1
             self._grid[x, y] = 1
-            arm_pos.remove((x, y))
+            # arm_pos.remove((x, y))
 
-        arm = random.choice(arm_pos)
-        self._arm_x = arm[0]
-        self._arm_y = arm[1]
+        # arm = random.choice(arm_pos)
+        # self._arm_x = arm[0]
+        # self._arm_y = arm[1]
+        self._arm_x = 0
+        self._arm_y = np.random.randint(self._size_y)
+
+        self.tower_height = self.get_tower_height()
 
         return self._get_obs()
 
@@ -84,17 +106,12 @@ class ArmEnvOpt(ArmEnv):
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
+        if self.get_tower_height() < self.tower_height:
+                reward += 50 * self._action_minus_reward  # penalty for making the tower lower
+        self.tower_height = self.get_tower_height()
+
         for i in range(self._grid.shape[1]):
             if self._grid[1, i] == 1 and self._grid[2, i] == 0:
-                self._done = True
-                reward += self._finish_reward
-                return observation, reward, self._done, info
-
-
-        height = self._grid.shape[0]
-        for i in range(self._grid.shape[1]):
-            t = np.sum(self._grid[height - 1 - self._tower_target_size:height, i])
-            if t == self._tower_target_size:
                 self._done = True
                 reward += self._finish_reward
                 return observation, reward, self._done, info
@@ -103,12 +120,24 @@ class ArmEnvOpt(ArmEnv):
             self._done = True
         return observation, reward, self._done, info
 
+    def _render(self, mode='human', close='false'):
+        outfile = sys.stdout
+
+        out = np.array(self._grid, copy=True)
+        out[self._arm_x, self._arm_y] = 3 - self._magnet_toggle*1
+
+        outfile.write('\n')
+        outfile.write(str(out))
+        outfile.write('\n')
+
+
 def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
 
     q_table = {}
+    initial_states = set()
     term_states = set()
 
     for i_episode in range(num_episodes):
@@ -122,6 +151,8 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
         # Reset the environment and pick the first action
         env.reset()
         state = env.get_current_state()
+        initial_states.add(state)
+
         if state not in q_table:
             q_table[state] = np.zeros(shape=env.action_space.n)
 
@@ -151,10 +182,10 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
 
             state = next_state
 
-    return to_plot, q_table, term_states
+    return to_plot, q_table, initial_states, term_states
 
 
-def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
+def q_learning_on_options(env, option_q_table, init_states, term_states, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
     stats = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -176,7 +207,7 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
         env.reset()
         state = env.get_current_state()
         if state not in q_table:
-            q_table[state] = np.zeros(shape=n_actions+1*(state in option_q_table))
+            q_table[state] = np.zeros(shape=n_actions+1*(state in init_states))
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
@@ -187,7 +218,7 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
 
             # Take an action
             if np.random.rand(1) < eps:  # choose random option
-                action0 = np.random.choice(np.arange(n_actions + 1*(state in option_q_table)), size=1)[0]
+                action0 = np.random.choice(np.arange(n_actions + 1*(state in init_states)), size=1)[0]
             else:
                 action0 = np.argmax(q_table[state])
 
@@ -195,11 +226,12 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
 
             # if option is chosen
             if action0 >= n_actions:
+                # print("\n Yahhooo \n")
                 opt_rew = 0
                 opt_t = 0
                 opt_state = state
 
-                while opt_t < 10:
+                while True:
 
                     action = np.argmax(option_q_table[opt_state])
                     opt_state, reward, done, _ = env.step(action)
@@ -212,7 +244,7 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
 
                 next_state = opt_state
                 if next_state not in q_table:
-                    q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in option_q_table))
+                    q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in init_states))
 
                 q_table[state][action0] = (1 - alpha) * q_table[state][action0] + alpha * (
                     opt_rew + gamma ** opt_t * np.max(q_table[next_state]))
@@ -229,7 +261,7 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
             else:
                 next_state, reward, done, _ = env.step(action0)
                 if next_state not in q_table:
-                    q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in option_q_table))
+                    q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in init_states))
                 q_table[state][action0] = (1 - alpha) * q_table[state][action0] + alpha * (
                     reward + gamma * np.max(q_table[next_state]))
 
@@ -244,33 +276,114 @@ def q_learning_on_options(env, option_q_table, term_states, num_episodes, eps=0.
 
     return stats, q_table
 
+
+def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
+    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "option"}
+
+    env.reset()
+    state = env.get_current_state()
+    n_actions = env.action_space.n
+    S_r = 0
+    S_t = 0
+    print("\n Start of the episode")
+    env.render()
+
+    for t in itertools.count():
+        # WE CAN PRINT ENVIRONMENT STATE
+
+        # Take a step
+        action = np.argmax(q_table[state])
+
+        # if option is chosen
+        if action >= n_actions:
+            opt_rew = 0
+            opt_t = 0
+            opt_state = state
+
+            while True:
+
+                action = np.argmax(option_q_table[opt_state])
+                opt_state, reward, done, _ = env.step(action)
+
+                opt_rew += reward
+                opt_t += 1
+
+                if done or opt_state in term_states:
+                    break
+
+            next_state = opt_state
+
+            if done:
+                break
+
+            state = next_state
+
+
+        else:
+            next_state, reward, done, _ = env.step(action)
+
+            if done:
+                break
+
+            state = next_state
+
+        print(moves_d[action]) # env.get_tower_height()) #env.tower_height)
+
+        # Update statistics
+        S_r += reward
+        S_t = t
+
+        if done:
+            env.render()
+            print("\n End of the episode")
+            break
+
+        state = next_state
+        env.render()
+    return S_r, S_t
+
+
 def main():
-    env = ArmEnvOpt(episode_max_length=500,
-                 size_x=4,
+    env = ArmEnvOpt(episode_max_length=50,
+                 size_x=5,
                  size_y=3,
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=3)
-    stats, q_table, term = q_learning_opt(env, 2000)
-    env = ArmEnv(episode_max_length=500,
-                    size_x=4,
-                    size_y=3,
-                    cubes_cnt=4,
-                    action_minus_reward=-1,
-                    finish_reward=100,
-                    tower_target_size=3)
-    stats2, q_table2 = q_learning_on_options(env, q_table, term, 1000)
+                 tower_target_size=4)
+    stats, q_table, init_st, term_st = q_learning_opt(env, 2000)
+    env2 = ArmEnv(episode_max_length=50,
+                 size_x=5,
+                 size_y=3,
+                 cubes_cnt=4,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=4)
+    stats2, q_table2 = q_learning_on_options(env2, q_table, init_st, term_st, 10000)
 
-    #plotting.plot_episode_stats(stats)
+    S, t = test_policy_opt(env2, q_table2, q_table, init_st, term_st)
+    # stats3, q_table3 = q_learning(env, 5000)
+
+    # plotting.plot_multi_test(smoothing_window=30,
+    #                          x_label="episode",
+    #                          y_label="smoothed rewards",
+    #                          curve_to_draw=[stats2.episode_rewards,
+    #                                         stats3.episode_rewards],
+    #                          labels=["options", "q-learning"]
+    #                          )
+
+    #plotting.plot_episode_stats(stats2)
     #for key in q_table:
     #    print(key, ":", q_table[key])
 
-    #print("Testing policy 1")
-    #S, t = test_policy(env, q_table)
-    #print("Testing policy 2")
-    #S, t = test_policy(env, q_table)
-
+    print("Testing policy 1")
+    S, t = test_policy(env, q_table)
+    print("Testing policy 2")
+    S, t = test_policy(env, q_table)
+    print("Testing policy 3")
+    S, t = test_policy(env, q_table)
+    print("Testing policy 4")
+    S, t = test_policy(env, q_table)
 
 if __name__ == '__main__':
     main()

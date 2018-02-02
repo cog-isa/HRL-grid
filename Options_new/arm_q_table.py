@@ -7,6 +7,25 @@ from environments.arm_env.arm_env import ArmEnv
 from utils import plotting
 
 
+class Arm2(ArmEnv):
+
+    def get_tower_height(self):
+        h = 0
+        for j in range(self._grid.shape[1]):
+            t = 0
+            for i in np.arange(self._grid.shape[0]-1, 0, -1):
+                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0:
+                    if i+1 == self._grid.shape[0]:
+                        t = self._grid.shape[0] - i
+                        break
+                    else:
+                        if self._grid[i+1, j] == 1:
+                            t = self._grid.shape[0] - i
+                            break
+            if t > h:
+                h = t
+        return h
+
 def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
@@ -56,44 +75,51 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
     return to_plot, q_table
 
 
+
 def test_policy(env, q_table):
+    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "option"}
     env.reset()
     state = env.get_current_state()
     S_r = 0
     S_t = 0
+    print("\n Start of the episode")
+    env.render()
 
     for t in itertools.count():
         # WE CAN PRINT ENVIRONMENT STATE
-        env.render()
 
         # Take a step
         action = np.argmax(q_table[state])
         next_state, reward, done, _ = env.step(action)
-        print(action, next_state)
+        print(moves_d[action], env.get_tower_height()) #env.tower_height)
 
         # Update statistics
         S_r += reward
         S_t = t
 
         if done:
+            env.render()
+            print("\n End of the episode")
             break
 
         state = next_state
+        env.render()
     return S_r, S_t
 
 
 def main():
-    env = ArmEnv(episode_max_length=400,
-                 size_x=4,
+    env = Arm2(episode_max_length=400,
+                 size_x=5,
                  size_y=3,
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=3)
+                 tower_target_size=4)
     stats, q_table = q_learning(env, 2000)
     plotting.plot_episode_stats(stats)
 
     S, t = test_policy(env, q_table)
+
 
 if __name__ == '__main__':
     main()
