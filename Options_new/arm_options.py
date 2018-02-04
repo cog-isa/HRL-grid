@@ -10,23 +10,15 @@ from utils import plotting
 
 
 class ArmEnvOpt(ArmEnv):
-    # return observation
-    def _get_obs(self):
-        pass
 
     def get_tower_height(self):
         h = 0
         for j in range(self._grid.shape[1]):
             t = 0
             for i in np.arange(self._grid.shape[0]-1, 0, -1):
-                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0:
-                    if i+1 == self._grid.shape[0]:
-                        t = self._grid.shape[0] - i
-                        break
-                    else:
-                        if self._grid[i+1, j] == 1:
-                            t = self._grid.shape[0] - i
-                            break
+                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
+                    t = self._grid.shape[0] - i
+                    break
             if t > h:
                 h = t
         return h
@@ -37,10 +29,9 @@ class ArmEnvOpt(ArmEnv):
         self._grid = np.zeros(shape=(self._size_x, self._size_y), dtype=np.int32)
         self._done = False
         self._magnet_toggle = False
-        self._current_state = 0
 
         # cartesian product
-        # arm_pos = list(product(*[np.arange(self._size_x), np.arange(self._size_y)]))
+        arm_pos = list(product(*[np.arange(self._size_x), np.arange(self._size_y)]))
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
@@ -48,15 +39,16 @@ class ArmEnvOpt(ArmEnv):
                 break
             cubes_left -= 1
             self._grid[x, y] = 1
-            # arm_pos.remove((x, y))
+            arm_pos.remove((x, y))
 
-        # arm = random.choice(arm_pos)
-        # self._arm_x = arm[0]
-        # self._arm_y = arm[1]
-        self._arm_x = 0
-        self._arm_y = np.random.randint(self._size_y)
+        arm = random.choice(arm_pos)
+        self._arm_x = arm[0]
+        self._arm_y = arm[1]
+        # self._arm_x = 0
+        # self._arm_y = np.random.randint(self._size_y)
 
         self.tower_height = self.get_tower_height()
+        self._current_state = self.grid_to_bin()
 
         return self._get_obs()
 
@@ -93,7 +85,8 @@ class ArmEnvOpt(ArmEnv):
                 while self.ok_and_empty(new_cube_x, new_cube_y):
                     new_cube_x, new_cube_y = new_cube_x + cube_dx, new_cube_y + cube_dy
                 new_cube_x, new_cube_y = new_cube_x - cube_dx, new_cube_y - cube_dy
-                self._grid[new_cube_x, new_cube_y], self._grid[cube_x, cube_y] = self._grid[cube_x, cube_y], self._grid[new_cube_x, new_cube_y]
+                self._grid[new_cube_x, new_cube_y], self._grid[cube_x, cube_y] = self._grid[cube_x, cube_y], self._grid[
+                    new_cube_x, new_cube_y]
                 self._magnet_toggle = False
 
         observation = self.grid_to_bin()
@@ -114,6 +107,7 @@ class ArmEnvOpt(ArmEnv):
             if self._grid[1, i] == 1 and self._grid[2, i] == 0:
                 self._done = True
                 reward += self._finish_reward
+                info = True
                 return observation, reward, self._done, info
 
         if self._episode_max_length <= self._episode_length:
@@ -131,7 +125,7 @@ class ArmEnvOpt(ArmEnv):
         outfile.write('\n')
 
 
-def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
+def q_learning_opt(env, num_episodes, eps=0.5, alpha=0.5, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -146,9 +140,9 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
         if (i_episode + 1) % 100 == 0:
             print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
             sys.stdout.flush()
-            eps = eps - 0.01 * eps
+            eps = eps - 0.1 * eps
 
-        # Reset the environment and pick the first action
+        # Reset the environment
         env.reset()
         state = env.get_current_state()
         initial_states.add(state)
@@ -157,8 +151,6 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
             q_table[state] = np.zeros(shape=env.action_space.n)
 
         for t in itertools.count():
-            # WE CAN PRINT ENVIRONMENT STATE
-            # env.render()
 
             # Take a step
             if np.random.rand(1) < eps:  # choose random action
@@ -166,7 +158,7 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
             else:
                 action = np.argmax(q_table[state])
 
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, done, info = env.step(action)
             if next_state not in q_table:
                 q_table[next_state] = np.zeros(shape=env.action_space.n)
             q_table[state][action] = (1 - alpha) * q_table[state][action] + \
@@ -176,7 +168,7 @@ def q_learning_opt(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
             to_plot.episode_rewards[i_episode] += reward
             to_plot.episode_lengths[i_episode] = t
 
-            if done:
+            if done and info:
                 term_states.add(next_state)
                 break
 
@@ -198,7 +190,7 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
     for i_episode in range(num_episodes):
         # Print out which episode we're on, useful for debugging.
 
-        if (i_episode + 1) % 100 == 0:
+        if (i_episode + 1) % 200 == 0:
             print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
             sys.stdout.flush()
             eps = eps - 0.1 * eps
@@ -278,7 +270,7 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
 
 
 def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
-    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "option"}
+    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "OPTION"}
 
     env.reset()
     state = env.get_current_state()
@@ -342,26 +334,59 @@ def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
         env.render()
     return S_r, S_t
 
+def test_policy_short(env, q_table):
+    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "option"}
+    env.reset()
+    state = env.get_current_state()
+    S_r = 0
+    S_t = 0
+    print("\n Start of the episode")
+    env.render()
+    print("Tower height:", env.get_tower_height())
+
+    for t in itertools.count():
+        # WE CAN PRINT ENVIRONMENT STATE
+
+        # Take a step
+        action = np.argmax(q_table[state])
+        next_state, reward, done, _ = env.step(action)
+
+        # Update statistics
+        S_r += reward
+        S_t = t
+
+        if done:
+            env.render()
+            print("Tower height:", env.get_tower_height())
+            print("\nEnd of the episode")
+            break
+
+        state = next_state
+    return S_r, S_t
+
 
 def main():
-    env = ArmEnvOpt(episode_max_length=50,
-                 size_x=5,
-                 size_y=3,
-                 cubes_cnt=4,
+    env = ArmEnvOpt(episode_max_length=100,
+                 size_x=7,
+                 size_y=7,
+                 cubes_cnt=7,
                  action_minus_reward=-1,
-                 finish_reward=100,
+                 finish_reward=200,
                  tower_target_size=4)
-    stats, q_table, init_st, term_st = q_learning_opt(env, 2000)
-    env2 = ArmEnv(episode_max_length=50,
-                 size_x=5,
-                 size_y=3,
-                 cubes_cnt=4,
-                 action_minus_reward=-1,
-                 finish_reward=100,
-                 tower_target_size=4)
-    stats2, q_table2 = q_learning_on_options(env2, q_table, init_st, term_st, 10000)
-
-    S, t = test_policy_opt(env2, q_table2, q_table, init_st, term_st)
+    stats, q_table, init_st, term_st = q_learning_opt(env, 20000)
+    print("\n Len of init_st", len(init_st), len(term_st), len(q_table))
+    for i in term_st:
+        print("\n", np.array(i).reshape((7,7)), "\n")
+    # env2 = ArmEnv(episode_max_length=50,
+    #              size_x=5,
+    #              size_y=3,
+    #              cubes_cnt=4,
+    #              action_minus_reward=-1,
+    #              finish_reward=100,
+    #              tower_target_size=4)
+    # stats2, q_table2 = q_learning_on_options(env2, q_table, init_st, term_st, 10000)
+    #
+    # S, t = test_policy_opt(env2, q_table2, q_table, init_st, term_st)
     # stats3, q_table3 = q_learning(env, 5000)
 
     # plotting.plot_multi_test(smoothing_window=30,
@@ -372,18 +397,32 @@ def main():
     #                          labels=["options", "q-learning"]
     #                          )
 
-    #plotting.plot_episode_stats(stats2)
+    plotting.plot_episode_stats(stats)
     #for key in q_table:
     #    print(key, ":", q_table[key])
 
-    print("Testing policy 1")
-    S, t = test_policy(env, q_table)
+    print("\nTesting policy 1")
+    S, t = test_policy_short(env, q_table)
     print("Testing policy 2")
-    S, t = test_policy(env, q_table)
+    S, t = test_policy_short(env, q_table)
     print("Testing policy 3")
-    S, t = test_policy(env, q_table)
+    S, t = test_policy_short(env, q_table)
     print("Testing policy 4")
-    S, t = test_policy(env, q_table)
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 5")
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 6")
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 7")
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 8")
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 9")
+    S, t = test_policy_short(env, q_table)
+    print("Testing policy 10")
+    S, t = test_policy_short(env, q_table)
+
+
 
 if __name__ == '__main__':
     main()
