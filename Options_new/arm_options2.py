@@ -4,6 +4,7 @@ import sys
 import random
 import numpy as np
 from gym import spaces
+import pickle
 
 from environments.arm_env.arm_env import ArmEnv
 from Options_new.arm_q_table import test_policy
@@ -13,8 +14,9 @@ from utils import plotting
 
 class ArmEnvOpt2(ArmEnv):
 
-    def place_cubes(self):
-        np.random.seed(123)
+    def place_cubes(self, seed=None):
+        if seed:
+            np.random.seed(seed)
         self._grid = np.zeros(shape=(self._size_x, self._size_y), dtype=np.int32)
 
         cubes_left = self._cubes_cnt
@@ -26,7 +28,7 @@ class ArmEnvOpt2(ArmEnv):
                     cubes_left -= 1
                     break
 
-    def __init__(self, size_x, size_y, cubes_cnt, episode_max_length, finish_reward, action_minus_reward, tower_target_size):
+    def __init__(self, size_x, size_y, cubes_cnt, episode_max_length, finish_reward, action_minus_reward, tower_target_size, seed = None):
         self._size_x = size_x
         self._size_y = size_y
         self._cubes_cnt = cubes_cnt
@@ -36,7 +38,7 @@ class ArmEnvOpt2(ArmEnv):
         self._tower_target_size = tower_target_size
         # checking for grid overflow
         assert cubes_cnt < size_x * size_y, "Cubes overflow the grid"
-        self.place_cubes()
+        self.place_cubes(seed)
         self.reset_grid = np.copy(self._grid)
 
         self.reset()
@@ -125,7 +127,9 @@ class ArmEnvOpt2(ArmEnv):
 
         observation = self.grid_to_bin()
         self._current_state = observation
-        reward = self._action_minus_reward
+        reward = 5*self._action_minus_reward
+        if a == 0 or a == 2:
+            reward += 50*self._action_minus_reward
         info = None
         # self.render_to_image()
         # observation (object): agent's observation of the current environment
@@ -133,9 +137,9 @@ class ArmEnvOpt2(ArmEnv):
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
-        if self.get_tower_height() < self.tower_height:
-                reward += 50 * self._action_minus_reward  # penalty for making the tower lower
-        self.tower_height = self.get_tower_height()
+        # if self.get_tower_height() < self.tower_height:
+        #         reward += 50 * self._action_minus_reward  # penalty for making the tower lower
+        # self.tower_height = self.get_tower_height()
 
         for i in range(self._grid.shape[1]):
             if self._grid[1, i] == 1 and self._grid[2, i] == 0:
@@ -149,7 +153,9 @@ class ArmEnvOpt2(ArmEnv):
             self._done = True
         return observation, reward, self._done, info
 
-    def _render(self, mode='human', close='false'):
+    def _render(self, mode='human', close=False):
+        if close:
+            return
         outfile = sys.stdout
 
         out = np.array(self._grid, copy=True)
@@ -160,7 +166,7 @@ class ArmEnvOpt2(ArmEnv):
         outfile.write('\n')
 
 
-def q_learning_opt(env, num_episodes, q_table={}, initial_states=set(), term_states=set(), eps=0.5, alpha=0.5, gamma=1.0):
+def q_learning_opt(env, num_episodes, q_table, initial_states, term_states, eps=0.5, alpha=0.5, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -199,8 +205,9 @@ def q_learning_opt(env, num_episodes, q_table={}, initial_states=set(), term_sta
             to_plot.episode_rewards[i_episode] += reward
             to_plot.episode_lengths[i_episode] = t
 
-            if done and info:
-                term_states.add(next_state)
+            if done:
+                if info:
+                    term_states.add(next_state)
                 break
 
             state = next_state
@@ -212,16 +219,63 @@ def main():
     q_table = {}
     initial_states = set()
     term_states = set()
-    n = 1
-    #for i in range(n):
-    env = ArmEnvOpt2(episode_max_length=50,
+    n = 100
+    for i in range(n):
+        env = ArmEnvOpt2(episode_max_length=50,
                  size_x=5,
                  size_y=3,
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
                  tower_target_size=4)
-    stats, q_table, initial_states, term_states = q_learning_opt(env, 2000)
+        stats, q_table, initial_states, term_states = q_learning_opt(env, 2000, q_table, initial_states, term_states)
+        print("\n n = ", i, "Len of init_st", len(initial_states), len(term_states), len(q_table), "\n")
+
+    print("\n Len of init_st", len(initial_states), len(term_states), len(q_table), "\n")
+
+    with open('opt_q_table.txt', 'wb') as handle:
+        pickle.dump(q_table, handle)
+
+    with open('opt_init_st.txt', 'wb') as handle:
+        pickle.dump(initial_states, handle)
+
+    with open('opt_term_st.txt', 'wb') as handle:
+        pickle.dump(term_states, handle)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                 size_x=5,
+                 size_y=3,
+                 cubes_cnt=4,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=4, seed=345)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                 size_x=5,
+                 size_y=3,
+                 cubes_cnt=4,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=4, seed=345)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                 size_x=5,
+                 size_y=3,
+                 cubes_cnt=4,
+                 action_minus_reward=-1,
+                 finish_reward=100,
+                 tower_target_size=4, seed=345)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                     size_x=5,
+                     size_y=3,
+                     cubes_cnt=4,
+                     action_minus_reward=-1,
+                     finish_reward=100,
+                     tower_target_size=4, seed=345)
     S, t = test_policy(env, q_table)
 
 

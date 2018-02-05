@@ -88,6 +88,7 @@ def test_policy(env, q_table):
         action = np.argmax(q_table[state])
         next_state, reward, done, _ = env.step(action)
         print("Next move:", moves_d[action])
+        print("\n Got reward ", reward)
 
         # Update statistics
         S_r += reward
@@ -106,7 +107,7 @@ def test_policy(env, q_table):
 
 
 def main():
-    env = Arm2(episode_max_length=400,
+    env = Arm2(episode_max_length=50,
                  size_x=5,
                  size_y=3,
                  cubes_cnt=4,
