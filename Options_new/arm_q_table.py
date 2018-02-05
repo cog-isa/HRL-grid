@@ -14,14 +14,9 @@ class Arm2(ArmEnv):
         for j in range(self._grid.shape[1]):
             t = 0
             for i in np.arange(self._grid.shape[0]-1, 0, -1):
-                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0:
-                    if i+1 == self._grid.shape[0]:
-                        t = self._grid.shape[0] - i
-                        break
-                    else:
-                        if self._grid[i+1, j] == 1:
-                            t = self._grid.shape[0] - i
-                            break
+                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
+                    t = self._grid.shape[0] - i
+                    break
             if t > h:
                 h = t
         return h
@@ -84,6 +79,7 @@ def test_policy(env, q_table):
     S_t = 0
     print("\n Start of the episode")
     env.render()
+    print("Tower height:", env.get_tower_height())
 
     for t in itertools.count():
         # WE CAN PRINT ENVIRONMENT STATE
@@ -91,7 +87,7 @@ def test_policy(env, q_table):
         # Take a step
         action = np.argmax(q_table[state])
         next_state, reward, done, _ = env.step(action)
-        print(moves_d[action], env.get_tower_height()) #env.tower_height)
+        print("Next move:", moves_d[action])
 
         # Update statistics
         S_r += reward
@@ -99,11 +95,13 @@ def test_policy(env, q_table):
 
         if done:
             env.render()
-            print("\n End of the episode")
+            print("Tower height:", env.get_tower_height())
+            print("\nEnd of the episode")
             break
 
         state = next_state
         env.render()
+        print("Tower height:", env.get_tower_height())
     return S_r, S_t
 
 
