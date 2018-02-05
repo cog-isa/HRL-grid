@@ -11,18 +11,6 @@ from utils import plotting
 
 class ArmEnvOpt(ArmEnv):
 
-    def get_tower_height(self):
-        h = 0
-        for j in range(self._grid.shape[1]):
-            t = 0
-            for i in np.arange(self._grid.shape[0]-1, 0, -1):
-                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
-                    t = self._grid.shape[0] - i
-                    break
-            if t > h:
-                h = t
-        return h
-
     # return: (states, observations)
     def _reset(self):
         self._episode_length = 0
@@ -47,7 +35,6 @@ class ArmEnvOpt(ArmEnv):
         # self._arm_x = 0
         # self._arm_y = np.random.randint(self._size_y)
 
-        self.tower_height = self.get_tower_height()
         self._current_state = self.grid_to_bin()
         self.initial_grid = np.copy(self._grid)
 
@@ -99,10 +86,6 @@ class ArmEnvOpt(ArmEnv):
         # reward (float) : amount of reward returned after previous action
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
-
-        if self.get_tower_height() < self.tower_height:
-                reward += 50 * self._action_minus_reward  # penalty for making the tower lower
-        self.tower_height = self.get_tower_height()
 
         for i in range(self._grid.shape[1]):
             if self._grid[1, i] == 1 and self._grid[2, i] == 0:
@@ -347,7 +330,7 @@ def test_policy_short(env, q_table):
     S_t = 0
     print("\n Start of the episode")
     env.render()
-    print("Tower height:", env.get_tower_height())
+    #print("Tower height:", env.get_tower_height())
 
     for t in itertools.count():
         # WE CAN PRINT ENVIRONMENT STATE
@@ -362,7 +345,7 @@ def test_policy_short(env, q_table):
 
         if done:
             env.render()
-            print("Tower height:", env.get_tower_height())
+            #print("Tower height:", env.get_tower_height())
             print("\nEnd of the episode")
             break
 
