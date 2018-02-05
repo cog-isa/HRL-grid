@@ -140,7 +140,7 @@ class ArmEnv(CoreEnv):
         self._arm_y = 0
         self._done = False
         self._magnet_toggle = False
-        self._current_state = 0
+        self._current_state = self.grid_to_bin()
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
