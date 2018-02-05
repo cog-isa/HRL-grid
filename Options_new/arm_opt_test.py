@@ -52,18 +52,21 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
                 # action0 = np.random.choice(np.arange(n_actions + 1*(state in init_states)), size=1)[0]
                 action0 = np.random.choice([0,2,4,5])
             else:
-                action0 = np.argmax(q_table[state])
+                action0 = 0
+                for l in range(2, len(q_table[state])):
+                    if l != 3 and q_table[state][l] > q_table[state][action0]:
+                        action0 = l
 
             # if i_episode == num_episodes - 1: print(action0)
-            # if action0 == 1 or action0 == 3:
-            #     print("\n smth wrong")
-            #     print(q_table[state][3])
+            if action0 == 1 or action0 == 3:
+                print("\n smth wrong")
+                print(q_table[state][3])
 
             # if option is chosen
             if action0 >= n_actions:
                 print("\n Option is chosen \n")
-                flag = 1
-                env.render()
+                # flag = 1
+                # env.render()
                 opt_rew = 0
                 opt_t = 0
                 opt_state = state
@@ -97,8 +100,8 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
 
                 state = next_state
 
-                print("\n After option is executed \n")
-                env.render()
+                # print("\n After option is executed \n")
+                # env.render()
 
             else:
                 next_state, reward, done, _ = env.step(action0)
@@ -194,13 +197,13 @@ def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
 #          print("\n", np.array(i).reshape((5,3)), "\n")
 
 def main():
-    env = ArmEnv(episode_max_length=400,
-                 size_x=7,
-                 size_y=4,
-                 cubes_cnt=5,
-                 action_minus_reward=-1,
-                 finish_reward=400,
-                 tower_target_size=5)
+    env = ArmEnv(episode_max_length=50,
+                     size_x=5,
+                     size_y=3,
+                     cubes_cnt=4,
+                     action_minus_reward=-1,
+                     finish_reward=100,
+                     tower_target_size=4)
 
     with open('opt_q_table.txt', 'rb') as handle:
         opt_q_table = pickle.loads(handle.read())
@@ -211,16 +214,16 @@ def main():
     with open('opt_term_st.txt', 'rb') as handle:
         term_states = pickle.loads(handle.read())
 
-    # print(len(opt_q_table))
-    #
+    print(len(opt_q_table))
+
     stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 5000)
+
+    plotting.plot_episode_stats(stats2)
     #
-    # plotting.plot_episode_stats(stats2)
-    #
-    # print(q_table2)
-    # print(len(q_table2))
-    #
-    # S, t = test_policy_opt(env, q_table2, opt_q_table, init_states, term_states)
+    print(q_table2)
+    print(len(q_table2))
+
+    S, t = test_policy_opt(env, q_table2, opt_q_table, init_states, term_states)
 
     # env = ArmEnvOpt2(episode_max_length=50,
     #                  size_x=5,
