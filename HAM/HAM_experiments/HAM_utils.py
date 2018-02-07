@@ -30,7 +30,7 @@ def maze_world_input_01():
     x = list(map(generate_pattern, base_patterns))
 
     mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=15)
-    mz_level2 = generate_maze([mz_level1], size_x=3, size_y=3)
+    mz_level2 = generate_maze([mz_level1], size_x=3, size_y=2)
     return place_start_finish(prepare_maze(mz_level2))
 
 

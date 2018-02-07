@@ -7,7 +7,7 @@ from collections import defaultdict
 import numpy as np
 
 from environments.arm_env.arm_env import ArmEnv
-from environments.env_utils import EnvForTesting
+from environments.env_utils import EnvForTesting, EnvForTesting2
 from environments.grid_maze_env.grid_maze_generator import generate_maze_please
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
 from utils.plotting import plot_multi_test
@@ -152,7 +152,7 @@ def main():
 
 
 if __name__ == '__main__':
-    global_env = EnvForTesting()
+    global_env = EnvForTesting2()
     q_stats, q_table = q_learning(env=global_env.env, num_episodes=global_env.episodes)
     print("\ntotal_reward", sum(q_stats))
     # plot_multi_test([q_stats])

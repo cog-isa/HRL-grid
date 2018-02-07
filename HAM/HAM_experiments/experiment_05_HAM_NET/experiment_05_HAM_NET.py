@@ -230,7 +230,7 @@ def main():
     q_table = defaultdict(lambda: 0)
     to_plot = []
     for i in range(10):
-        q_stats, q_table = q_learning(env=net, num_episodes=200, gamma=1, eps=1 - i * 10 / 10, q_table=q_table, alpha=0.5)
+        q_stats, q_table = q_learning(env=net, num_episodes=100, gamma=1, eps=1 - i * 10 / 10, q_table=q_table, alpha=0.5)
         to_plot += q_stats
         print(":::::" * 10)
         print(1 - i * 10 / 100)

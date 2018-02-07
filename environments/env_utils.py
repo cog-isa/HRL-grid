@@ -13,7 +13,7 @@ class EnvForTesting:
 
 class EnvForTesting2:
     def __init__(self):
-        self.env = ArmEnv(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=300, finish_reward=20000, action_minus_reward=-1, tower_target_size=4)
+        self.env = ArmEnv(size_x=4, size_y=3, cubes_cnt=3, episode_max_length=300, finish_reward=20000, action_minus_reward=-1, tower_target_size=3)
         self.episodes = 1800
 
 
