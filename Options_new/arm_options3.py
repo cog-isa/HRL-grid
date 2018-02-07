@@ -11,18 +11,6 @@ from utils import plotting
 
 class ArmEnvOpt(ArmEnv):
 
-    def get_tower_height(self):
-        h = 0
-        for j in range(self._grid.shape[1]):
-            t = 0
-            for i in np.arange(self._grid.shape[0]-1, 0, -1):
-                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
-                    t = self._grid.shape[0] - i
-                    break
-            if t > h:
-                h = t
-        return h
-
     # return: (states, observations)
     def _reset(self):
         self._episode_length = 0
@@ -47,7 +35,6 @@ class ArmEnvOpt(ArmEnv):
         # self._arm_x = 0
         # self._arm_y = np.random.randint(self._size_y)
 
-        self.tower_height = self.get_tower_height()
         self._current_state = self.grid_to_bin()
         self.initial_grid = np.copy(self._grid)
 
@@ -92,19 +79,13 @@ class ArmEnvOpt(ArmEnv):
 
         observation = self.grid_to_bin()
         self._current_state = observation
-        reward = 5*self._action_minus_reward
-        if a == 0 or a == 2:
-            reward += 50*self._action_minus_reward
+        reward = self._action_minus_reward
         info = None
         # self.render_to_image()
         # observation (object): agent's observation of the current environment
         # reward (float) : amount of reward returned after previous action
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
-        #
-        # if self.get_tower_height() < self.tower_height:
-        #         reward += 30 * self._action_minus_reward  # penalty for making the tower lower
-        # self.tower_height = self.get_tower_height()
 
         for i in range(self._grid.shape[1]):
             if self._grid[1, i] == 1 and self._grid[2, i] == 0:
@@ -129,7 +110,7 @@ class ArmEnvOpt(ArmEnv):
         outfile.write('\n')
 
 
-def q_learning_opt(env, num_episodes, eps=0.5, alpha=0.7, gamma=1.0):
+def q_learning_opt(env, num_episodes, eps=0.6, alpha=0.7, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -165,15 +146,15 @@ def q_learning_opt(env, num_episodes, eps=0.5, alpha=0.7, gamma=1.0):
             next_state, reward, done, info = env.step(action)
             if next_state not in q_table:
                 q_table[next_state] = np.zeros(shape=env.action_space.n)
-            q_table[state][action] = (1 - alpha) * q_table[state][action] + alpha * (reward + gamma * np.max(q_table[next_state]))
+            q_table[state][action] = (1 - alpha) * q_table[state][action] + \
+                                     alpha * (reward + gamma * np.max(q_table[next_state]))
 
             # Update statistics
             to_plot.episode_rewards[i_episode] += reward
             to_plot.episode_lengths[i_episode] = t
 
-            if done:
-                if info:
-                    term_states.add(next_state)
+            if done and info:
+                term_states.add(next_state)
                 break
 
             state = next_state
@@ -349,7 +330,7 @@ def test_policy_short(env, q_table):
     S_t = 0
     print("\n Start of the episode")
     env.render()
-    print("Tower height:", env.get_tower_height())
+    #print("Tower height:", env.get_tower_height())
 
     for t in itertools.count():
         # WE CAN PRINT ENVIRONMENT STATE
@@ -364,7 +345,7 @@ def test_policy_short(env, q_table):
 
         if done:
             env.render()
-            print("Tower height:", env.get_tower_height())
+            #print("Tower height:", env.get_tower_height())
             print("\nEnd of the episode")
             break
 
@@ -374,15 +355,14 @@ def test_policy_short(env, q_table):
 
 def main():
     env = ArmEnvOpt(episode_max_length=100,
-                 size_x=8,
-                 size_y=6,
-                 cubes_cnt=8,
+                 size_x=5,
+                 size_y=5,
+                 cubes_cnt=6,
                  action_minus_reward=-1,
                  finish_reward=200,
                  tower_target_size=4)
-    stats, q_table, init_st, term_st = q_learning_opt(env, 30000)
+    stats, q_table, init_st, term_st = q_learning_opt(env, 3000)
     print("\n Len of init_st", len(init_st), len(term_st), len(q_table), "\n")
-    plotting.plot_episode_stats(stats)
     # for i in term_st:
     #     print("\n", np.array(i).reshape((5,5)), "\n")
     env2 = ArmEnv(episode_max_length=100,
@@ -390,11 +370,11 @@ def main():
                  size_y=5,
                  cubes_cnt=6,
                  action_minus_reward=-1,
-                 finish_reward=150,
+                 finish_reward=100,
                  tower_target_size=4)
-    # stats2, q_table2 = q_learning_on_options(env2, q_table, init_st, term_st, 10000)
-    #
-    # S, t = test_policy_opt(env2, q_table2, q_table, init_st, term_st)
+    stats2, q_table2 = q_learning_on_options(env2, q_table, init_st, term_st, 10000)
+
+    S, t = test_policy_opt(env2, q_table2, q_table, init_st, term_st)
     # stats3, q_table3 = q_learning(env, 5000)
 
     # plotting.plot_multi_test(smoothing_window=30,
@@ -405,8 +385,8 @@ def main():
     #                          labels=["options", "q-learning"]
     #                          )
 
-    # plotting.plot_episode_stats(stats2)
-    # print(q_table2)
+    plotting.plot_episode_stats(stats2)
+    print(q_table2)
     #for key in q_table:
     #    print(key, ":", q_table[key])
 
@@ -430,22 +410,7 @@ def main():
     # S, t = test_policy_short(env, q_table)
     # print("Testing policy 10")
     # S, t = test_policy_short(env, q_table)
-    print("\n Full test 1")
-    S, t = test_policy(env, q_table)
-    print("Full test 2")
-    S, t = test_policy(env, q_table)
-    print("Full test 3")
-    S, t = test_policy(env, q_table)
-    print("Full test 4")
-    S, t = test_policy(env, q_table)
-    print("Full test 5")
-    S, t = test_policy(env, q_table)
-    print("Full test 6")
-    S, t = test_policy(env, q_table)
-    print("Full test 7")
-    S, t = test_policy(env, q_table)
-    print("Full test 8")
-    S, t = test_policy(env, q_table)
+
 
 
 if __name__ == '__main__':
