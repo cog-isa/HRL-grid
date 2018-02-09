@@ -38,6 +38,7 @@ class ArmEnvOpt2(ArmEnv):
         self._tower_target_size = tower_target_size
         # checking for grid overflow
         assert cubes_cnt < size_x * size_y, "Cubes overflow the grid"
+
         self.place_cubes(seed)
         self.reset_grid = np.copy(self._grid)
 
@@ -127,9 +128,9 @@ class ArmEnvOpt2(ArmEnv):
 
         observation = self.grid_to_bin()
         self._current_state = observation
-        reward = 5*self._action_minus_reward
+        reward = 5 * self._action_minus_reward
         if a == 0 or a == 2:
-            reward += 50*self._action_minus_reward
+            reward += 50 * self._action_minus_reward
         info = None
         # self.render_to_image()
         # observation (object): agent's observation of the current environment
@@ -219,7 +220,7 @@ def main():
     q_table = {}
     initial_states = set()
     term_states = set()
-    n = 100
+    n = 150
     for i in range(n):
         env = ArmEnvOpt2(episode_max_length=50,
                  size_x=5,
@@ -248,7 +249,7 @@ def main():
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=4, seed=345)
+                 tower_target_size=4, seed=849)
     S, t = test_policy(env, q_table)
 
     env = ArmEnvOpt2(episode_max_length=50,
@@ -257,7 +258,7 @@ def main():
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=4, seed=345)
+                 tower_target_size=4, seed=16374)
     S, t = test_policy(env, q_table)
 
     env = ArmEnvOpt2(episode_max_length=50,
@@ -266,7 +267,7 @@ def main():
                  cubes_cnt=4,
                  action_minus_reward=-1,
                  finish_reward=100,
-                 tower_target_size=4, seed=345)
+                 tower_target_size=4, seed=2790)
     S, t = test_policy(env, q_table)
 
     env = ArmEnvOpt2(episode_max_length=50,
@@ -275,7 +276,34 @@ def main():
                      cubes_cnt=4,
                      action_minus_reward=-1,
                      finish_reward=100,
-                     tower_target_size=4, seed=345)
+                     tower_target_size=4, seed=174)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                     size_x=5,
+                     size_y=3,
+                     cubes_cnt=4,
+                     action_minus_reward=-1,
+                     finish_reward=100,
+                     tower_target_size=4, seed=395)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                     size_x=5,
+                     size_y=3,
+                     cubes_cnt=4,
+                     action_minus_reward=-1,
+                     finish_reward=100,
+                     tower_target_size=4, seed=19476)
+    S, t = test_policy(env, q_table)
+
+    env = ArmEnvOpt2(episode_max_length=50,
+                     size_x=5,
+                     size_y=3,
+                     cubes_cnt=4,
+                     action_minus_reward=-1,
+                     finish_reward=100,
+                     tower_target_size=4, seed=4)
     S, t = test_policy(env, q_table)
 
 
