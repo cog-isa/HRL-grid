@@ -26,6 +26,25 @@ class ArmEnv2(ArmEnv):
                 h = t
         return h
 
+    def _reset(self):
+        self._episode_length = 0
+        self._grid = np.zeros(shape=(self._size_x, self._size_y), dtype=np.int32)
+        self._arm_x = 0
+        self._arm_y = 0
+        self._done = False
+        self._magnet_toggle = False
+
+        cubes_left = self._cubes_cnt
+        for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
+            if cubes_left == 0:
+                break
+            cubes_left -= 1
+            self._grid[x, y] = 1
+
+        self._current_state = self.grid_to_bin()
+
+        return self._get_obs()
+
     def _render(self, mode='human', close=False):
         if close:
             return
@@ -97,8 +116,9 @@ class ArmEnv2(ArmEnv):
             self._done = True
         return observation, reward, self._done, info
 
+
 def q_learning_on_options(env, option_q_table, init_states, term_states, num_episodes, eps=0.5, alpha=0.5, gamma=1.0):
-    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "OPTION"}
+
     stats = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -121,8 +141,8 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
         state = env.get_current_state()
         # flag = 0
         if state not in q_table:
+            # print(state)
             q_table[state] = np.zeros(shape=n_actions+1*(state in init_states))
-
 
         for t in itertools.count():
             # WE CAN PRINT ENVIRONMENT STATE
@@ -149,7 +169,7 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
 
             # if option is chosen
             if action0 >= n_actions:
-                print("\n Option is chosen \n")
+                # print("\n Option is chosen \n")
                 # flag = 1
                 # env.render()
                 opt_rew = 0
@@ -262,7 +282,6 @@ def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
         S_t = t
 
         if done:
-            print("i was here")
             env.render()
             print("\n End of the episode")
             break
@@ -280,7 +299,7 @@ def main():
                      size_x=5,
                      size_y=3,
                      cubes_cnt=4,
-                     action_minus_reward=-0.1,
+                     action_minus_reward=-1,
                      finish_reward=100,
                      tower_target_size=4)
 
@@ -293,10 +312,10 @@ def main():
     with open('opt_term_st.txt', 'rb') as handle:
         term_states = pickle.loads(handle.read())
 
-    print(len(opt_q_table))
-    print(opt_q_table)
+    # print(len(opt_q_table))
+    # print(opt_q_table)
 
-    stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 10000)
+    stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 8000)
 
     plotting.plot_episode_stats(stats2)
     #
