@@ -5,7 +5,7 @@ from gym import spaces
 
 from HAM.HAM_core import RandomMachine, MachineGraph, Start, Stop, Action, AutoBasicMachine, MachineRelation, Choice, Call, AbstractMachine, LoopInvokerMachine, \
     RootMachine
-from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, ham_runner, plot_multi, PlotParams
+from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, ham_runner, plot_multi, PlotParams, super_runner
 from HAM.HAM_experiments.experiment_04_auto_random_HAM_on_maze_env.experiment_04 import is_it_machine_runnable
 from environments.arm_env.arm_env import ArmEnv
 from environments.env_core import CoreEnv
@@ -18,22 +18,7 @@ from utils.graph_drawer import draw_graph
 from utils.plotting import plot_multi_test
 
 
-def super_runner(call_me_maybe, env):
-    start = Start()
-    choice_one = Choice()
-    actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
-    stop = Stop()
 
-    call = Call(call_me_maybe)
-    transitions = [MachineRelation(left=start, right=choice_one), ]
-    for action in actions:
-        transitions.append(MachineRelation(left=choice_one, right=action))
-        transitions.append(MachineRelation(left=action, right=stop, label=0))
-        transitions.append(MachineRelation(left=action, right=stop, label=1))
-    transitions.append(MachineRelation(left=choice_one, right=call))
-    transitions.append(MachineRelation(left=call, right=stop))
-
-    return AbstractMachine(graph=MachineGraph(transitions=transitions))
 
 
 class StupidMachine(AbstractMachine):

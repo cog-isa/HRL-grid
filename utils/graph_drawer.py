@@ -17,7 +17,7 @@ def draw_graph(file_name, graph):
             edge.attr['label'] = i[2]
 
     g_out.layout(prog='dot')
-    g_out.draw(path="{file_name}.png".format(**locals()))
+    g_out.draw(path="{file_name}.svg".format(**locals()))
 
 
 def main():

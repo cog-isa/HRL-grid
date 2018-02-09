@@ -2,8 +2,10 @@ import random
 
 from HAM.HAM_core import Action, RootMachine, \
     LoopInvokerMachine, RandomMachine, MachineGraph
-from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, plot_multi, ham_runner, PlotParams
-from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, prepare_maze, generate_maze_please
+from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, plot_multi, ham_runner, PlotParams, super_runner
+from article_experiments.global_envs import MazeEnvArticleSpecial, MazeEnvArticle, ArmEnvArticle
+from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, \
+    prepare_maze, generate_maze_please
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
 from utils.graph_drawer import draw_graph
 
@@ -65,36 +67,39 @@ def create_random_machine(maximal_number_of_vertex, maximal_number_of_edges, ran
     return new_machine
 
 
-def maze_world_input_special():
-    base_patterns = [2 ** 6 + 2 ** 8, 1 + 2 ** 12, 0]
-    x = list(map(generate_pattern, base_patterns))
-
-    mz_level1 = generate_maze(x, size_x=3, size_y=3, seed=15)
-    return place_start_finish(prepare_maze(mz_level1))
-
-
 def main(begin_seed=0):
     for seed in range(begin_seed, begin_seed + 5000):
-        maze = maze_world_input_special()
-        maze = generate_maze_please(size_x=2, size_y=2)
-        env = MazeWorldEpisodeLength(maze=maze)
+        # maze = maze_world_input_special()
+        # maze = generate_maze_please(size_x=2, size_y=2)
+        # env = MazeWorldEpisodeLength(maze=maze)
+        # global_env, save_folder  = MazeEnvArticleSpecial(), "laby_spec/"
+        global_env, save_folder  = MazeEnvArticle(), "laby/"
+        # global_env, save_folder  = ArmEnvArticle(), "arm/"
 
-        num_episodes = 1000
+        env, num_episodes = global_env.env, global_env.episodes_count
 
-        new_machine = create_random_machine(maximal_number_of_vertex=6, maximal_number_of_edges=6, random_seed=seed, env=env)
+        new_machine = create_random_machine(maximal_number_of_vertex=6, maximal_number_of_edges=6, random_seed=seed,
+                                            env=env)
 
         if is_it_machine_runnable(new_machine):
             params = HAMParamsCommon(env)
             try:
+                ham_runner(
+                    ham=RootMachine(LoopInvokerMachine(machine_to_invoke=super_runner(new_machine, env))),
+                    num_episodes=num_episodes,
+                    env=env, params=params,
+                    no_output=True
+                    )
                 ham_runner(ham=RootMachine(machine_to_invoke=LoopInvokerMachine(new_machine)),
                            num_episodes=num_episodes,
-                           env=env, params=params)
+                           env=env, params=params, no_output=True)
 
-                if sum(params.logs["ep_rewards"][-100:]) > 0:
-                    print("{test}done_it".format(**locals()), sum(params.logs["ep_rewards"]))
-
-                    to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="Random" + str(seed + 1)))
-                    draw_graph("pics/" + str(seed), new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
+                # to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="Random" + str(seed + 1)))
+                reward = sum(params.logs["ep_rewards"])
+                draw_graph(save_folder + str(reward) + ":::" + str(seed),
+                           new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
+                # draw_graph("pics/" + str(reward).rjust(10, "0"),
+                #            new_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
             except KeyError:
                 print("keyError", end="")
             except AssertionError:

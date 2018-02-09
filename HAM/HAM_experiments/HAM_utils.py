@@ -2,7 +2,8 @@ from collections import namedtuple
 
 import sys
 
-from HAM.HAM_core import HAMParams, RandomMachine, LoopInvokerMachine, RootMachine
+from HAM.HAM_core import HAMParams, RandomMachine, LoopInvokerMachine, RootMachine, Start, Choice, Action, Stop, Call, \
+    MachineRelation, MachineGraph, AbstractMachine
 from environments.grid_maze_env.grid_maze_generator import generate_pattern, generate_maze, place_start_finish, prepare_maze
 from utils import plotting
 from utils.graph_drawer import draw_graph
@@ -64,6 +65,23 @@ def draw_system_machines():
 
 PlotParams = namedtuple("PlotParams", ["curve_to_draw", "label"])
 
+
+def super_runner(call_me_maybe, env):
+    start = Start()
+    choice_one = Choice()
+    actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
+    stop = Stop()
+
+    call = Call(call_me_maybe)
+    transitions = [MachineRelation(left=start, right=choice_one), ]
+    for action in actions:
+        transitions.append(MachineRelation(left=choice_one, right=action))
+        transitions.append(MachineRelation(left=action, right=stop, label=0))
+        transitions.append(MachineRelation(left=action, right=stop, label=1))
+    transitions.append(MachineRelation(left=choice_one, right=call))
+    transitions.append(MachineRelation(left=call, right=stop))
+
+    return AbstractMachine(graph=MachineGraph(transitions=transitions))
 
 def main():
     draw_system_machines()

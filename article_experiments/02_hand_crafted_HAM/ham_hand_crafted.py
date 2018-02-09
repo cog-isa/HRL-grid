@@ -2,6 +2,7 @@ from HAM.HAM_core import AbstractMachine, Start, Action, Stop, MachineRelation, 
 from HAM.HAM_experiments.HAM_utils import ham_runner, HAMParamsCommon
 from article_experiments.global_envs import MazeEnvArticle, MazeEnvArticleSpecial, ArmEnvArticle, EnvironmentsArticle, get_cumulative_rewards
 from environments.grid_maze_env.maze_world_env import MazeWorldEpisodeLength
+from utils.graph_drawer import draw_graph
 
 name = "02_ham_hand_crafted"
 
@@ -9,20 +10,26 @@ name = "02_ham_hand_crafted"
 def run(global_env):
     if isinstance(global_env, ArmEnvArticle):
         env = global_env.env
-        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=PullUpMachine(env=env)))
+        internal_machine = PullUpMachine(env=env)
+        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=internal_machine))
         params = HAMParamsCommon(env)
+        draw_graph(file_name="arm_env", graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
         rewards = params.logs["ep_rewards"]
 
     elif isinstance(global_env, MazeEnvArticle):
         env = global_env.env
-        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=InterestingMachine(env=env)))
+        internal_machine = InterestingMachine(env=env)
+        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=internal_machine))
+        draw_graph(file_name="maze_env",graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         params = HAMParamsCommon(env)
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
         rewards = params.logs["ep_rewards"]
     elif isinstance(global_env, MazeEnvArticleSpecial):
         env = global_env.env
-        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=InterestingMachineLeftUpInteresting(env=env)))
+        internal_machine = InterestingMachineLeftUpInteresting(env=env)
+        machine = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=internal_machine))
+        draw_graph(file_name="maze_env_special",graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         params = HAMParamsCommon(env)
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
         rewards = params.logs["ep_rewards"]

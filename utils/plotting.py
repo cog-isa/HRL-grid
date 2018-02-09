@@ -31,7 +31,7 @@ def plot_episode_stats(stats, smoothing_window=10, no_show=False):
 
 
 def plot_multi_test(curve_to_draw=None, smoothing_window=10, x_label="X", y_label="Y", labels=None):
-    fig2 = plt.figure(figsize=(20, 10))
+    fig2 = plt.figure(figsize=(10, 5))
 
     t = []
     for index, elem in enumerate(curve_to_draw):
