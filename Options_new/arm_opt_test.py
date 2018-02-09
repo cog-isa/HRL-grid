@@ -4,12 +4,11 @@ from itertools import product
 import sys
 import random
 import numpy as np
-from gym import spaces
 
 from environments.arm_env.arm_env import ArmEnv
-from Options_new.arm_q_table import test_policy
-from Options_new.arm_options import test_policy_short, test_policy_opt
-from Options_new.arm_options2 import ArmEnvOpt2
+from Options_new.arm_options import test_policy_opt
+from Options_new.arm_q_table import q_learning
+
 from utils import plotting
 
 class ArmEnv2(ArmEnv):
@@ -107,7 +106,7 @@ class ArmEnv2(ArmEnv):
         height = self._grid.shape[0]
         for i in range(self._grid.shape[1]):
             t = np.sum(self._grid[height - 1 - self._tower_target_size:height, i])
-            if t == self._tower_target_size:
+            if t == self._tower_target_size and self._magnet_toggle == False:
                 self._done = True
                 reward += self._finish_reward
                 return observation, reward, self._done, info
@@ -295,13 +294,13 @@ def test_policy_opt(env, q_table, option_q_table, init_states, term_states):
 #          print("\n", np.array(i).reshape((5,3)), "\n")
 
 def main():
-    env = ArmEnv2(episode_max_length=50,
-                     size_x=5,
-                     size_y=3,
-                     cubes_cnt=4,
-                     action_minus_reward=-1,
-                     finish_reward=100,
-                     tower_target_size=4)
+    env = ArmEnv2(episode_max_length=200,
+                 size_x=8,
+                 size_y=4,
+                 cubes_cnt=6,
+                 action_minus_reward=-1,
+                 finish_reward=200,
+                 tower_target_size=6)
 
     with open('opt_q_table.txt', 'rb') as handle:
         opt_q_table = pickle.loads(handle.read())
@@ -315,14 +314,24 @@ def main():
     # print(len(opt_q_table))
     # print(opt_q_table)
 
-    stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 8000)
+    stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 10000)
 
     plotting.plot_episode_stats(stats2)
     #
-    print(q_table2)
-    print(len(q_table2))
+    # print(q_table2)
+    # print(len(q_table2))
 
     S, t = test_policy_opt(env, q_table2, opt_q_table, init_states, term_states)
+
+    stats3, q_table3 = q_learning(env, 10000)
+
+    plotting.plot_multi_test(smoothing_window=30,
+                             x_label="episode",
+                             y_label="smoothed rewards",
+                             curve_to_draw=[stats2.episode_rewards,
+                                            stats3.episode_rewards],
+                             labels=["options", "q-learning"]
+                             )
 
     # env = ArmEnvOpt2(episode_max_length=50,
     #                  size_x=5,

@@ -21,7 +21,7 @@ class Arm2(ArmEnv):
                 h = t
         return h
 
-def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
+def q_learning(env, num_episodes, eps=0.5, alpha=0.5, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -34,7 +34,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
         if (i_episode + 1) % 100 == 0:
             print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
             sys.stdout.flush()
-            eps = eps - 0.01 * eps
+            eps = eps - 0.1 * eps
 
         # Reset the environment and pick the first action
         env.reset()
