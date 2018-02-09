@@ -21,7 +21,7 @@ class Arm2(ArmEnv):
                 h = t
         return h
 
-def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
+def q_learning(env, num_episodes, eps=0.5, alpha=0.5, gamma=1.0):
     to_plot = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
@@ -34,7 +34,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
         if (i_episode + 1) % 100 == 0:
             print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
             sys.stdout.flush()
-            eps = eps - 0.01 * eps
+            eps = eps - 0.1 * eps
 
         # Reset the environment and pick the first action
         env.reset()
@@ -72,7 +72,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=1.0):
 
 
 def test_policy(env, q_table):
-    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "option"}
+    moves_d = {0: 'LEFT', 1: "UP", 2: "RIGHT", 3: "DOWN", 4: "ON", 5: "OFF", 6: "OPTION"}
     env.reset()
     state = env.get_current_state()
     S_r = 0
@@ -114,10 +114,11 @@ def main():
                  action_minus_reward=-1,
                  finish_reward=100,
                  tower_target_size=4)
-    stats, q_table = q_learning(env, 2000)
+    stats, q_table = q_learning(env, 4000)
     plotting.plot_episode_stats(stats)
 
     S, t = test_policy(env, q_table)
+    print("Time: ", t, "Reward: ", S)
 
 
 if __name__ == '__main__':
