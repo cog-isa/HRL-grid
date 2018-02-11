@@ -5,7 +5,7 @@ from article_experiments.global_envs import MazeEnvArticleSpecial, ArmEnvArticle
     get_cumulative_rewards, EnvironmentsArticle
 from utils.graph_drawer import draw_graph
 
-name = "03_random"
+name = "05_random"
 
 
 def run(global_env):

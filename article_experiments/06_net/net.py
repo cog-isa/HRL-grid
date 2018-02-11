@@ -16,7 +16,7 @@ def run(global_env):
         env = global_env.env
         internal_machine = M1(env=env)
         machine = RootMachine(LoopInvokerMachine(super_runner(call_me_maybe=internal_machine, env=env)))
-        draw_graph(file_name="maze_env_special",
+        draw_graph(file_name="1",
                    graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         params = HAMParamsCommon(env)
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
@@ -25,7 +25,7 @@ def run(global_env):
         env = global_env.env
         internal_machine = M2(env=env)
         machine = RootMachine(LoopInvokerMachine(super_runner(call_me_maybe=internal_machine, env=env)))
-        draw_graph(file_name="maze_env_special",
+        draw_graph(file_name="2",
                    graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         params = HAMParamsCommon(env)
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
@@ -34,7 +34,7 @@ def run(global_env):
         env = global_env.env
         internal_machine = M3(env=env)
         machine = RootMachine(LoopInvokerMachine(super_runner(call_me_maybe=internal_machine, env=env)))
-        draw_graph(file_name="maze_env_special",
+        draw_graph(file_name="3",
                    graph=internal_machine.get_graph_to_draw(action_to_name_mapping=env.get_actions_as_dict()))
         params = HAMParamsCommon(env)
         ham_runner(ham=machine, num_episodes=global_env.episodes_count, env=env, params=params)
