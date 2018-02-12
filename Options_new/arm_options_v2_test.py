@@ -8,6 +8,8 @@ import numpy as np
 from environments.arm_env.arm_env import ArmEnv
 from Options_new.arm_options import test_policy_opt
 from Options_new.arm_q_table import q_learning
+from Options_new.arm_q_table import test_policy
+from Options_new.arm_options_v2 import ArmEnvOpt2
 
 from utils import plotting
 
@@ -153,14 +155,14 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
 
             # Take an action
             if np.random.rand(1) < eps:  # choose random option
-                # action0 = np.random.choice(np.arange(n_actions + 1*(state in init_states)), size=1)[0]
-                action0 = np.random.choice([0, 2, 4, 5])
+                action0 = np.random.choice(np.arange(n_actions + 1*(state in init_states)), size=1)[0]
+                # action0 = np.random.choice([0, 2, 4, 5])
             else:
-                # action0 = np.argmax(q_table[state])
-                action0 = 0
-                for l in range(2, len(q_table[state])):
-                    if l != 3 and q_table[state][l] > q_table[state][action0]:
-                        action0 = l
+                action0 = np.argmax(q_table[state])
+                # action0 = 0
+                # for l in range(2, len(q_table[state])):
+                #     if l != 3 and q_table[state][l] > q_table[state][action0]:
+                #         action0 = l
 
             # if i_episode == num_episodes - 1: print(action0)
             # if action0 == 1 or action0 == 3:
@@ -195,13 +197,13 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
                 if next_state not in q_table:
                     q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in init_states))
 
-                z = q_table[next_state][0]
-                for l in range(2, len(q_table[next_state])):
-                    if l != 3 and q_table[next_state][l] > z:
-                        z = q_table[next_state][l]
+                # z = q_table[next_state][0]
+                # for l in range(2, len(q_table[next_state])):
+                #     if l != 3 and q_table[next_state][l] > z:
+                #         z = q_table[next_state][l]
 
                 q_table[state][action0] = (1 - alpha) * q_table[state][action0] + alpha * (
-                    opt_rew + gamma ** opt_t * z)
+                    opt_rew + gamma ** opt_t * np.max(q_table[next_state]))
 
                 # print(state, ":", q_table[state], "\n")
 
@@ -222,13 +224,13 @@ def q_learning_on_options(env, option_q_table, init_states, term_states, num_epi
                 if next_state not in q_table:
                     q_table[next_state] = np.zeros(shape=n_actions+1*(next_state in init_states))
 
-                z = q_table[next_state][0]
-                for l in range(2, len(q_table[next_state])):
-                    if l != 3 and q_table[next_state][l] > z:
-                        z = q_table[next_state][l]
+                # z = q_table[next_state][0]
+                # for l in range(2, len(q_table[next_state])):
+                #     if l != 3 and q_table[next_state][l] > z:
+                #         z = q_table[next_state][l]
 
                 q_table[state][action0] = (1 - alpha) * q_table[state][action0] + alpha * (
-                    reward + gamma * z)
+                    reward + gamma * np.max(q_table[next_state]))
 
                 # Update statistics
                 stats.episode_rewards[i_episode] += reward
@@ -313,19 +315,74 @@ def main():
                  finish_reward=200,
                  tower_target_size=6)
 
-    with open('opt_q_table.txt', 'rb') as handle:
+    with open('opt_q_table_v2.txt', 'rb') as handle:
         opt_q_table = pickle.loads(handle.read())
 
-    with open('opt_init_st.txt', 'rb') as handle:
+    with open('opt_init_st_v2.txt', 'rb') as handle:
         init_states = pickle.loads(handle.read())
 
-    with open('opt_term_st.txt', 'rb') as handle:
+    with open('opt_term_st_v2.txt', 'rb') as handle:
         term_states = pickle.loads(handle.read())
 
     # print(len(opt_q_table))
     # print(opt_q_table)
 
-    stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 10000)
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=16374)
+    S, t = test_policy(env, opt_q_table)
+
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=2790)
+    S, t = test_policy(env, opt_q_table)
+
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=174)
+    S, t = test_policy(env, opt_q_table)
+
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=395)
+    S, t = test_policy(env, opt_q_table)
+
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=19476)
+    S, t = test_policy(env, opt_q_table)
+
+    env = ArmEnvOpt2(episode_max_length=100,
+                     size_x=8,
+                     size_y=4,
+                     cubes_cnt=6,
+                     action_minus_reward=-1,
+                     finish_reward=200,
+                     tower_target_size=6, seed=4)
+    S, t = test_policy(env, opt_q_table)
+
+
+    # stats2, q_table2 = q_learning_on_options(env, opt_q_table, init_states, term_states, 10000)
 
     # plotting.plot_episode_stats(stats2)
     #
@@ -334,15 +391,15 @@ def main():
 
     # S, t = test_policy_opt(env, q_table2, opt_q_table, init_states, term_states)
 
-    stats3, q_table3 = q_learning(env, 10000)
-
-    plotting.plot_multi_test(smoothing_window=30,
-                             x_label="episode",
-                             y_label="smoothed rewards",
-                             curve_to_draw=[stats2.episode_rewards,
-                                            stats3.episode_rewards],
-                             labels=["options", "q-learning"]
-                             )
+    # stats3, q_table3 = q_learning(env, 10000)
+    #
+    # plotting.plot_multi_test(smoothing_window=30,
+    #                          x_label="episode",
+    #                          y_label="smoothed rewards",
+    #                          curve_to_draw=[stats2.episode_rewards,
+    #                                         stats3.episode_rewards],
+    #                          labels=["options", "q-learning"]
+    #                          )
 
     # env = ArmEnvOpt2(episode_max_length=50,
     #                  size_x=5,

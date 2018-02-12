@@ -1,8 +1,6 @@
 import itertools
 import sys
-
 import numpy as np
-
 from environments.arm_env.arm_env import ArmEnv
 from utils import plotting
 
