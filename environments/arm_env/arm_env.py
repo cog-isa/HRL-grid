@@ -125,7 +125,7 @@ class ArmEnv(CoreEnv):
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
-        if self.get_tower_height() == self._tower_target_size:
+        if self.get_tower_height() == self._tower_target_size and self._magnet_toggle == False:
             self._done = True
             reward += self._finish_reward
             return observation, reward, self._done, info
