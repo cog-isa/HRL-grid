@@ -67,6 +67,18 @@ class ArmEnv(CoreEnv):
             s.append(int(i))
         return tuple(s)
 
+    def get_tower_height(self):
+        h = 0
+        for j in range(self._grid.shape[1]):
+            t = 0
+            for i in np.arange(self._grid.shape[0]-1, 0, -1):
+                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
+                    t = self._grid.shape[0] - i
+                    break
+            if t > h:
+                h = t
+        return h
+
     def _step(self, a):
 
         self._episode_length += 1
@@ -113,13 +125,10 @@ class ArmEnv(CoreEnv):
         # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
         # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
-        height = self._grid.shape[0]
-        for i in range(self._grid.shape[1]):
-            t = np.sum(self._grid[height - 1 - self._tower_target_size:height, i])
-            if t == self._tower_target_size:
-                self._done = True
-                reward += self._finish_reward
-                return observation, reward, self._done, info
+        if self.get_tower_height() == self._tower_target_size:
+            self._done = True
+            reward += self._finish_reward
+            return observation, reward, self._done, info
 
         if self._episode_max_length <= self._episode_length:
             self._done = True
@@ -157,7 +166,7 @@ class ArmEnv(CoreEnv):
         outfile = sys.stdout
 
         out = np.array(self._grid, copy=True)
-        out[self._arm_x, self._arm_y] = 2
+        out[self._arm_x, self._arm_y] = 3 - self._magnet_toggle * 1
 
         outfile.write('\n')
         outfile.write(str(out))
