@@ -79,9 +79,10 @@ class ArmEnv(CoreEnv):
                 h = t
         return h
 
-    def _step(self, a):
+    def _step(self, a, options=False):
 
-        self._episode_length += 1
+        if not options:
+            self._episode_length += 1
 
         if a in self.MOVE_ACTIONS:
             cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
@@ -128,6 +129,7 @@ class ArmEnv(CoreEnv):
         if self.get_tower_height() == self._tower_target_size and self._magnet_toggle == False:
             self._done = True
             reward += self._finish_reward
+            info = True
             return observation, reward, self._done, info
 
         if self._episode_max_length <= self._episode_length:
@@ -149,7 +151,7 @@ class ArmEnv(CoreEnv):
         self._arm_y = 0
         self._done = False
         self._magnet_toggle = False
-        self._current_state = self.grid_to_bin()
+
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
@@ -158,6 +160,7 @@ class ArmEnv(CoreEnv):
             cubes_left -= 1
             self._grid[x, y] = 1
 
+        self._current_state = self.grid_to_bin()
         return self._get_obs()
 
     def _render(self, mode='human', close=False):
