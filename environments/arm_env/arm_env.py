@@ -71,8 +71,8 @@ class ArmEnv(CoreEnv):
         h = 0
         for j in range(self._grid.shape[1]):
             t = 0
-            for i in np.arange(self._grid.shape[0]-1, 0, -1):
-                if self._grid[i, j] == 1 and self._grid[i-1, j] == 0 and (i+1 == self._grid.shape[0] or self._grid[i+1, j] == 1):
+            for i in np.arange(self._grid.shape[0] - 1, 0, -1):
+                if self._grid[i, j] == 1 and self._grid[i - 1, j] == 0 and (i + 1 == self._grid.shape[0] or self._grid[i + 1, j] == 1):
                     t = self._grid.shape[0] - i
                     break
             if t > h:
@@ -150,8 +150,7 @@ class ArmEnv(CoreEnv):
         self._arm_x = 0
         self._arm_y = 0
         self._done = False
-        self._magnet_toggle = False
-
+        self._magnet_toggle = True
 
         cubes_left = self._cubes_cnt
         for (x, y), value in reversed(list(np.ndenumerate(self._grid))):
@@ -300,3 +299,94 @@ class ArmEnvToggle(ArmEnv):
     def reset(self):
         super()._reset()
 
+
+class ArmEnvToggleTopOnly(ArmEnv):
+    metadata = {'render.modes': ['human', 'ansi']}
+
+    ACTIONS = namedtuple("ACTIONS", ["LEFT", "UP", "RIGHT", "DOWN", "TOGGLE", ])(
+        LEFT=0,
+        UP=1,
+        RIGHT=2,
+        DOWN=3,
+        TOGGLE=4,
+    )
+
+    def step(self, a):
+
+        self._episode_length += 1
+
+        if a in self.MOVE_ACTIONS:
+
+            cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
+            cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
+            if self._magnet_toggle and self.ok(cube_x, cube_y) and self._grid[cube_x][cube_y] == 1:
+
+                if self._arm_x != 0 and (a == self.ACTIONS.LEFT or a == self.ACTIONS.RIGHT):
+                    cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
+                    cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
+                    if self.ok(cube_x, cube_y) and self._grid[cube_x, cube_y] == 1 and self._magnet_toggle:
+                        new_cube_x, new_cube_y = cube_x + cube_dx, cube_y + cube_dy
+                        while self.ok_and_empty(new_cube_x, new_cube_y):
+                            new_cube_x, new_cube_y = new_cube_x + cube_dx, new_cube_y + cube_dy
+                        new_cube_x, new_cube_y = new_cube_x - cube_dx, new_cube_y - cube_dy
+                        self._grid[new_cube_x, new_cube_y], self._grid[cube_x, cube_y] = self._grid[cube_x, cube_y], \
+                                                                                         self._grid[
+                                                                                             new_cube_x, new_cube_y]
+                else:
+                    new_arm_x, new_arm_y = self._arm_x + self.MOVE_ACTIONS[a][0], self._arm_y + self.MOVE_ACTIONS[a][1]
+                    new_cube_x, new_cube_y = new_arm_x + cube_dx, new_arm_y + cube_dy
+                    self._grid[cube_x][cube_y] = 0
+                    if self.ok_and_empty(new_arm_x, new_arm_y) and self.ok_and_empty(new_cube_x, new_cube_y):
+                        self._arm_x, self._arm_y = new_arm_x, new_arm_y
+                        self._grid[new_cube_x][new_cube_y] = 1
+                    else:
+                        self._grid[cube_x][cube_y] = 1
+            else:
+                new_arm_x, new_arm_y = self._arm_x + self.MOVE_ACTIONS[a][0], self._arm_y + self.MOVE_ACTIONS[a][1]
+                if self.ok_and_empty(new_arm_x, new_arm_y):
+                    self._arm_x, self._arm_y = new_arm_x, new_arm_y
+                else:
+                    # cant move, mb -reward
+                    pass
+        elif a == self.ACTIONS.TOGGLE:
+            if self._magnet_toggle:
+                cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
+                cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
+                if self.ok(cube_x, cube_y) and self._grid[cube_x, cube_y] == 1 and self._magnet_toggle:
+                    new_cube_x, new_cube_y = cube_x + cube_dx, cube_y + cube_dy
+                    while self.ok_and_empty(new_cube_x, new_cube_y):
+                        new_cube_x, new_cube_y = new_cube_x + cube_dx, new_cube_y + cube_dy
+                    new_cube_x, new_cube_y = new_cube_x - cube_dx, new_cube_y - cube_dy
+                    self._grid[new_cube_x, new_cube_y], self._grid[cube_x, cube_y] = self._grid[cube_x, cube_y], \
+                                                                                     self._grid[
+                                                                                         new_cube_x, new_cube_y]
+
+                self._magnet_toggle = False
+            else:
+                self._magnet_toggle = True
+
+        observation = self.grid_to_bin()
+        self._current_state = observation
+        reward = self._action_minus_reward
+        info = None
+        # self.render_to_image()
+        # observation (object): agent's observation of the current environment
+        # reward (float) : amount of reward returned after previous action
+        # done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
+        # info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+
+        height = self._grid.shape[0]
+        for i in range(self._grid.shape[1]):
+            t = np.sum(self._grid[height - 1 - self._tower_target_size:height, i])
+            if t == self._tower_target_size:
+                self._done = True
+                reward += self._finish_reward
+                return observation, reward, self._done, info
+
+        if self._episode_max_length <= self._episode_length:
+            self._done = True
+        # print("ololo", observation, reward, self._done, info)
+        return observation, reward, self._done, info
+
+    def reset(self):
+        super()._reset()
