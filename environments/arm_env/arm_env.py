@@ -300,5 +300,3 @@ class ArmEnvToggle(ArmEnv):
     def reset(self):
         super()._reset()
 
-    def render(self, mode='human'):
-        super()._render()
