@@ -1,11 +1,11 @@
+from SearchHie.main import environments
 from environments.arm_env.arm_env import ArmEnv, ArmEnvToggle, ArmEnvToggleTopOnly
 
 if __name__ == "__main__":
 
     print("\n" * 100)
 
-    c_env = ArmEnvToggleTopOnly(size_x=5, size_y=3, cubes_cnt=3, episode_max_length=100, finish_reward=100,
-                         action_minus_reward=-1, tower_target_size=3)
+    c_env = environments[3]
     _, rew, is_done = (None, None, None)
     done = False
     while not done:

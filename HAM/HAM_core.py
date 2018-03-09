@@ -124,8 +124,8 @@ class AbstractMachine:
             already_added_machines = []
         graph = []
         for i in self.graph.transitions:
-            if isinstance(i.left, Action) and i.label == 1:
-                continue
+            # if isinstance(i.left, Action) and i.label == 1:
+            #     continue
 
             def get_str_with_special_for_actions(vertex):
                 if isinstance(vertex, Action) and action_to_name_mapping is not None:
@@ -278,7 +278,8 @@ class RandomMachine(AbstractMachine):
         return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices + [new_vertex]))
 
     def with_new_relation(self):
-        res = MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices)
+        # res = MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices)
+        res = MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices)
         stop = res.get_stop()
         # added to Action vertices link to the Stop with on_model env_done
         # TODO don't create links between unused vertex and Stop

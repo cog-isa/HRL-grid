@@ -303,7 +303,9 @@ class ArmEnvToggle(ArmEnv):
 class ArmEnvToggleTopOnly(ArmEnv):
     metadata = {'render.modes': ['human', 'ansi']}
 
-    ACTIONS = namedtuple("ACTIONS", ["LEFT", "UP", "RIGHT", "DOWN", "TOGGLE", ])(
+    ACTIONS = namedtuple("ACTIONS", ["LEFT", "UP", "RIGHT", "DOWN",
+                                     "TOGGLE",
+                                     ])(
         LEFT=0,
         UP=1,
         RIGHT=2,
