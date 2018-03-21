@@ -130,6 +130,23 @@ def learn(env,
     
     # YOUR CODE HERE
 
+    pred_q = q_func(obs_t_float, num_actions, scope="q_func", reuse=False)
+    pred_ac = tf.argmax(pred_q, axis=1)
+    pred_q_a = tf.reduce_sum(pred_q * tf.one_hot(act_t_ph, depth=num_actions), axis=1)
+
+
+    target_q = q_func(obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
+    target_q_a = rew_t_ph + (1 - done_mask_ph) * gamma * tf.reduce_max(target_q, axis=1)
+
+    total_error = tf.reduce_sum(huber_loss(pred_q_a - tf.stop_gradient(target_q_a)))
+
+
+    q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
+    target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
+
+
+
+
     ######
 
     # construct optimization op (with gradient clipping)
@@ -197,6 +214,20 @@ def learn(env,
         
         # YOUR CODE HERE
 
+        idx = replay_buffer.store_frame(last_obs)
+
+        if not model_initialized or random.random() < exploration.value(t):
+            action = random.randint(0, num_actions - 1)
+        else:
+            obs = replay_buffer.encode_recent_observation()
+            action = session.run(pred_ac, {obs_t_ph: [obs]})[0]
+
+        next_obs, reward, done, info = env.step(action)
+        replay_buffer.store_effect(idx, action, reward, done)
+        last_obs = env.reset() if done else next_obs
+
+
+
         #####
 
         # at this point, the environment should have been advanced one step (and
@@ -246,6 +277,37 @@ def learn(env,
             #####
             
             # YOUR CODE HERE
+
+            # 3.a sample a batch of transitions
+            obs_batch, act_batch, rew_batch, next_obs_batch, done_batch = replay_buffer.sample(batch_size)
+
+            # 3.b initialize the model if haven't
+            if not model_initialized:
+                initialize_interdependent_variables(session, tf.global_variables(), {
+                    obs_t_ph: obs_batch,
+                    obs_tp1_ph: next_obs_batch,
+                })
+                session.run(update_target_fn)
+                model_initialized = True
+
+            # 3.c train the model
+            _, error = session.run([train_fn, total_error], {
+                obs_t_ph: obs_batch,
+                act_t_ph: act_batch,
+                rew_t_ph: rew_batch,
+                obs_tp1_ph: next_obs_batch,
+                done_mask_ph: done_batch,
+                learning_rate: optimizer_spec.lr_schedule.value(t)
+            })
+
+            # 3.d periodically update the target network
+            if t % target_update_freq == 0:
+                # Use t here instead of num_param_updates
+                # Under the default hyperparameter
+                # this will speed up learning performance
+                # Or you can set target_update_freq to less
+                session.run(update_target_fn)
+                num_param_updates += 1
 
             #####
 
