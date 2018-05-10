@@ -1,7 +1,9 @@
 import pandas as pd
 from collections import namedtuple
-from matplotlib import pyplot as plt
-
+# from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 EpisodeStats = namedtuple("Stats", ["episode_lengths", "episode_rewards"])
 
 
