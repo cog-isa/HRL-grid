@@ -119,13 +119,13 @@ class AbstractMachine:
         while not isinstance(current_vertex, Stop):
             current_vertex = current_vertex.run(self)
 
-    def get_graph_to_draw(self, action_to_name_mapping=None, already_added_machines=None):
+    def get_graph_to_draw(self, action_to_name_mapping=None, already_added_machines=None, no_edges_with_exit_f=None):
         if already_added_machines is None:
             already_added_machines = []
         graph = []
         for i in self.graph.transitions:
-            # if isinstance(i.left, Action) and i.label == 1:
-            #     continue
+            if no_edges_with_exit_f and isinstance(i.left, Action) and i.label == 1:
+                continue
 
             def get_str_with_special_for_actions(vertex):
                 if isinstance(vertex, Action) and action_to_name_mapping is not None:
@@ -140,14 +140,15 @@ class AbstractMachine:
             left_vertex = get_str_with_special_for_actions(i.left)
             right_vertex = get_str_with_special_for_actions(i.right)
 
-            graph.append((left_vertex, right_vertex, "f(E)=" + str(i.label) if i.label is not None else ""))
+            graph.append((left_vertex, right_vertex, "f(E)=" + str(i.label) if i.label is not None and no_edges_with_exit_f is None else ""))
 
         for i in self.graph.transitions:
 
             if isinstance(i.right, Call):
                 if i.right not in already_added_machines:
                     already_added_machines.append(i.right)
-                    graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines=already_added_machines,
+                    if i.right.machine_to_call is not None:
+                        graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines=already_added_machines,
                                                                               action_to_name_mapping=action_to_name_mapping)
         return graph
 
@@ -190,7 +191,7 @@ class RandomMachine(AbstractMachine):
         vertex_to_add_list = [Action(action=i) for i in sorted(env.get_actions_as_dict().values())]
         vertex_to_add_list += [Choice(), Choice()]
         vertex_to_add_list += [Call(machine_to_call=i) for i in machines_to_call]
-        return random.choice(sorted(vertex_to_add_list, key=lambda x:x.id))
+        return random.choice(sorted(vertex_to_add_list, key=lambda x: x.id))
 
     @staticmethod
     def get_vertex_from_transitions(transitions):
@@ -321,6 +322,24 @@ class MachineVertex:
 
     def run(self, *args, **kwargs):
         raise NotImplementedError
+
+    def __lt__(self, other):
+        def get_vertex_id(vertex):
+            if isinstance(vertex, Start):
+                return 0
+            elif isinstance(vertex, Stop):
+                return 1
+            elif isinstance(vertex, Choice):
+                return 2
+            elif isinstance(vertex, Call):
+                return 3
+            elif isinstance(vertex, Action):
+                return 4
+            else:
+                raise TypeError
+        if isinstance(self, Action) and isinstance(other, Action):
+            return self.action < other.action
+        return get_vertex_id(self) < get_vertex_id(other)
 
 
 class Start(MachineVertex):
