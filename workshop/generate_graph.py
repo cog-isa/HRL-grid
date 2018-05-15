@@ -45,6 +45,9 @@ class MachineStored:
 
         return AbstractMachine(MachineGraph(transitions=transitions))
 
+    def get_max_index(self):
+        return 2 ** (len(self.vertex_types) ** 2)
+
     def draw(self, filename):
         draw_graph(filename, self.get_machine().get_graph_to_draw(action_to_name_mapping=self.env.get_actions_as_dict(), no_edges_with_exit_f=True))
         s = None
