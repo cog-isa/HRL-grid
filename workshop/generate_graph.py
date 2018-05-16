@@ -18,6 +18,33 @@ class MachineStored:
     def __str__(self):
         return ""
 
+    def get_machine_without_on_model(self):
+        transitions = []
+        for left_ind in range(len(self.vertex_types)):
+            for right_ind in range(len(self.vertex_types)):
+                left = self.vertex_types[left_ind]
+                right = self.vertex_types[right_ind]
+                if (2 ** (left_ind * len(self.vertex_types) + right_ind)) & self.binary_matrix_representation:
+                    if isinstance(left, Action):
+                        transitions.append(MachineRelation(left=left, right=right, label=0))
+                    else:
+                        transitions.append(MachineRelation(left=left, right=right))
+
+        start, stop = None, None
+        for vertex in self.vertex_types:
+            if isinstance(vertex, Start):
+                start = vertex
+            elif isinstance(vertex, Stop):
+                stop = vertex
+
+        assert start is not None
+        assert stop is not None
+
+        # for vertex in [_ for _ in self.vertex_types if isinstance(_, Action)]:
+        #     transitions.append(MachineRelation(left=vertex, right=stop, label=1))
+
+        return AbstractMachine(MachineGraph(transitions=transitions, vertices=self.vertex_types))
+
     def get_machine(self):
         transitions = []
         for left_ind in range(len(self.vertex_types)):
@@ -43,7 +70,7 @@ class MachineStored:
         for vertex in [_ for _ in self.vertex_types if isinstance(_, Action)]:
             transitions.append(MachineRelation(left=vertex, right=stop, label=1))
 
-        return AbstractMachine(MachineGraph(transitions=transitions))
+        return AbstractMachine(MachineGraph(transitions=transitions, vertices=self.vertex_types))
 
     def get_max_index(self):
         return 2 ** (len(self.vertex_types) ** 2)
