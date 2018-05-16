@@ -72,10 +72,21 @@ def get_graph_id_fast(m: MachineStored, current_index=0, cur_id=0, ans=None):
             get_graph_id_fast(m, current_index + 1, cur_id + i * (2 ** (len(m.vertex_types * current_index))), ans=ans)
     else:
         raise TypeError
-    # else:
-    #     for i in range(len(m.vertex_types)):
-    #         get_graph_id_fast(m, current_index + 1, cur_id + i * (2 ** len(m.vertex_types)), ans=ans)
     return ans
+
+
+def generate_good_graph_ids(env, vertexes):
+    good_graphs = []
+    for max_vertex_count in range(7):
+        vc = vertex_combination(vertex_types=vertexes, max_vertex_count=max_vertex_count)
+        for index, vertex_types in enumerate(vc):
+            for graph_id in sorted(get_graph_id_fast(MachineStored(vertex_types=vertex_types, binary_matrix_representation=412, env=env))):
+                ms = MachineStored(vertex_types=vertex_types, binary_matrix_representation=graph_id, env=env)
+                if is_ham_ok(ms.get_machine_without_on_model()):
+                    if check_for_one_component_graph(ms.get_machine_without_on_model()):
+                        if is_it_machine_runnable(ms.get_machine_without_on_model()):
+                            good_graphs.append(graph_id)
+    return good_graphs
 
 
 def main():
@@ -88,12 +99,12 @@ def main():
         Action(env.ACTIONS.RIGHT),
         Action(env.ACTIONS.UP),
         Action(env.ACTIONS.DOWN),
-        Action(env.ACTIONS.TOGGLE),
+        # Action(env.ACTIONS.TOGGLE),
         Choice(),
         # Action(env.ACTIONS.LEFT),
         # Action(env.ACTIONS.RIGHT),
-        Action(env.ACTIONS.UP),
-        Action(env.ACTIONS.DOWN),
+        # Action(env.ACTIONS.UP),
+        # Action(env.ACTIONS.DOWN),
         # Action(env.ACTIONS.TOGGLE),
         # Choice(),
     ])
