@@ -2,8 +2,10 @@ import pandas as pd
 from collections import namedtuple
 # from matplotlib import pyplot as plt
 import matplotlib
+
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+
 EpisodeStats = namedtuple("Stats", ["episode_lengths", "episode_rewards"])
 
 
@@ -32,7 +34,7 @@ def plot_episode_stats(stats, smoothing_window=10, no_show=False):
         plt.show(fig2)
 
 
-def plot_multi_test(curve_to_draw=None, smoothing_window=10, x_label="X", y_label="Y", labels=None):
+def plot_multi_test(curve_to_draw=None, smoothing_window=10, x_label="X", y_label="Y", labels=None, filename=None):
     fig2 = plt.figure(figsize=(10, 5))
 
     t = []
@@ -44,5 +46,5 @@ def plot_multi_test(curve_to_draw=None, smoothing_window=10, x_label="X", y_labe
     plt.xlabel(x_label)
     plt.ylabel(y_label)
 
-    plt.savefig("diagram.png")
+    plt.savefig("diagram.png" if filename is None else filename + ".png")
     plt.show(fig2)
