@@ -1,4 +1,5 @@
 import re
+import json
 
 from HAM.HAM_core import Action, MachineRelation, Stop, Start, AbstractMachine, MachineGraph, Choice
 from environments.arm_env.arm_env import ArmEnvToggleTopOnly
@@ -27,8 +28,30 @@ class MachineStored:
         for i in range(len(self.vertex_types) - 1):
             assert not self.vertex_types[i + 1] < self.vertex_types[i], "should be sorted"
 
-    def __str__(self):
-        return ""
+    def to_dict(self):
+        return {"vertices": [_.get_name() for _ in self.vertex_types],
+                "binary_matrix_representation": self.binary_matrix_representation
+                }
+
+    @staticmethod
+    def from_dict(graph_dict, env):
+        vertex_types = []
+        for v in graph_dict["vertices"]:
+            if isinstance(v, (list, tuple)):
+                _, action_id = v
+                vertex_types.append(Action(action=action_id))
+            elif isinstance(v, str):
+                if v == "Choice":
+                    vertex_types.append(Choice())
+                elif v == "Start":
+                    vertex_types.append(Start())
+                elif v == "Stop":
+                    vertex_types.append(Stop())
+                else:
+                    raise TypeError
+            else:
+                raise TypeError
+        return MachineStored(vertex_types=vertex_types, binary_matrix_representation=graph_dict["binary_matrix_representation"], env=env)
 
     def get_machine_without_on_model(self):
         transitions = []
@@ -128,7 +151,6 @@ class MachineStored:
 
 
 def main():
-    pass
     env = ArmEnvToggleTopOnly(size_x=5, size_y=5, cubes_cnt=4, episode_max_length=600, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
 
     ms = MachineStored(vertex_types=sorted([
@@ -140,10 +162,14 @@ def main():
         Action(env.ACTIONS.RIGHT),
         Action(env.ACTIONS.TOGGLE),
         Action(env.ACTIONS.TOGGLE),
-    ]), binary_matrix_representation=543215435343, env=env)
-    for i in range(100):
-        ms.binary_matrix_representation = i
-        ms.draw_ru("ololo{i}".format(**locals()))
+    ]), binary_matrix_representation=42, env=env)
+    ms.draw("a")
+    d = ms.to_dict()
+    ms = MachineStored.from_dict(d, env=env)
+    ms.draw("b")
+    # for i in range(100):
+    #     ms.binary_matrix_representation = i
+    #     ms.draw_ru("ololo{i}".format(**locals()))
 
 
 if __name__ == '__main__':
