@@ -1,11 +1,23 @@
 import re
 
-from HAM.HAM_core import Action, MachineRelation, Stop, Start, AbstractMachine, MachineGraph, Call, Choice
+from HAM.HAM_core import Action, MachineRelation, Stop, Start, AbstractMachine, MachineGraph, Choice
 from environments.arm_env.arm_env import ArmEnvToggleTopOnly
 from utils.graph_drawer import draw_graph
 
 
 class MachineStored:
+    @staticmethod
+    def ms_from_machine(machine: AbstractMachine, env):
+        vertex_types = sorted(machine.graph.vertices)
+        graph_id = 0
+        for left_ind in range(len(vertex_types)):
+            for right_ind in range(len(vertex_types)):
+                for vertex in machine.graph.vertex_mapping[vertex_types[left_ind]]:
+                    if vertex.right is vertex_types[right_ind]:
+                        graph_id |= (2 ** (left_ind * len(vertex_types) + right_ind))
+
+        return MachineStored(vertex_types=vertex_types, binary_matrix_representation=graph_id, env=env)
+
     def __init__(self, vertex_types, binary_matrix_representation, env):
         # self.vertex_types = sorted(vertex_types)
         self.vertex_types = vertex_types
@@ -39,9 +51,6 @@ class MachineStored:
 
         assert start is not None
         assert stop is not None
-
-        # for vertex in [_ for _ in self.vertex_types if isinstance(_, Action)]:
-        #     transitions.append(MachineRelation(left=vertex, right=stop, label=1))
 
         return AbstractMachine(MachineGraph(transitions=transitions, vertices=self.vertex_types))
 
@@ -127,7 +136,6 @@ def main():
         Stop(),
         Action(env.ACTIONS.LEFT),
         Action(env.ACTIONS.LEFT),
-        Call(None),
         Choice(),
         Action(env.ACTIONS.RIGHT),
         Action(env.ACTIONS.TOGGLE),
