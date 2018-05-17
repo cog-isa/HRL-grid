@@ -149,7 +149,7 @@ class AbstractMachine:
                     already_added_machines.append(i.right)
                     if i.right.machine_to_call is not None:
                         graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines=already_added_machines,
-                                                                              action_to_name_mapping=action_to_name_mapping)
+                                                                                  action_to_name_mapping=action_to_name_mapping)
         return graph
 
     def __str__(self):
@@ -323,6 +323,20 @@ class MachineVertex:
     def run(self, *args, **kwargs):
         raise NotImplementedError
 
+    def get_name(self):
+        if isinstance(self, Start):
+            return "Start"
+        elif isinstance(self, Stop):
+            return "Stop"
+        elif isinstance(self, Choice):
+            return "Choice"
+        elif isinstance(self, Call):
+            return "Call"
+        elif isinstance(self, Action):
+            return "Action", self.action
+        else:
+            raise TypeError
+
     def __lt__(self, other):
         def get_vertex_id(vertex):
             if isinstance(vertex, Start):
@@ -337,6 +351,7 @@ class MachineVertex:
                 return 4
             else:
                 raise TypeError
+
         if isinstance(self, Action) and isinstance(other, Action):
             return self.action < other.action
         return get_vertex_id(self) < get_vertex_id(other)
