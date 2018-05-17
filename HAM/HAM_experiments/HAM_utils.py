@@ -35,12 +35,13 @@ def maze_world_input_01():
     return place_start_finish(prepare_maze(mz_level2))
 
 
-def plot_multi(p_params):
-    plotting.plot_multi_test(smoothing_window=30,
+def plot_multi(p_params, filename=None):
+    plotting.plot_multi_test(smoothing_window=1,
                              x_label="episode",
                              y_label="smoothed rewards",
                              curve_to_draw=[_.curve_to_draw for _ in p_params],
-                             labels=[_.label for _ in p_params]
+                             labels=[_.label for _ in p_params],
+                             filename=filename
                              )
 
 
