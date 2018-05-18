@@ -174,10 +174,29 @@ class ArmEnv(CoreEnv):
         outfile.write(str(out))
         outfile.write('\n')
 
+    @staticmethod
+    def grid_to_draw(grid):
+        arm_scale = 5
+        res = up_scaler(grid, arm_scale)
+        for (x, y), value in np.ndenumerate(res):
+            if value == 2:
+                res[x:x + arm_scale, y:y + arm_scale] = 0
+                res[x:x + arm_scale, y + arm_scale // 2] = 2
+                res[x + arm_scale - 1, y:y + arm_scale] = 2
+                break
+        return np.array(res, copy=True)
+
+    def get_grid(self):
+        res = np.array(self._grid, copy=True)
+        res[self._arm_x][self._arm_y] = 2
+        if self._magnet_toggle:
+            res[res == 2] = 3
+        return np.array(res, copy=True)
+
     def get_evidence_for_image_render(self):
         res = np.array(self._grid, copy=True)
-        arm_scale = 5
         res[self._arm_x][self._arm_y] = 2
+        arm_scale = 5
         res = up_scaler(res, arm_scale)
         for (x, y), value in np.ndenumerate(res):
             if value == 2:
@@ -192,10 +211,30 @@ class ArmEnv(CoreEnv):
     def get_current_info(self):
         return self.get_evidence_for_image_render()
 
+
+
     @staticmethod
     def render_to_image(n_grid):
-        n_grid = up_scaler(n_grid, 20)
+        # n_grid = up_scaler(n_grid, 20)
 
+        res = np.array(n_grid, copy=True)
+        arm_scale = 5
+        res = up_scaler(res, arm_scale)
+        for (x, y), value in np.ndenumerate(res):
+            if value == 2:
+                res[x:x + arm_scale, y:y + arm_scale] = 0
+                res[x:x + arm_scale, y + arm_scale // 2] = 2
+                res[x + arm_scale - 1, y:y + arm_scale] = 2
+                break
+        for (x, y), value in np.ndenumerate(res):
+            if value == 3:
+                res[x:x + arm_scale, y:y + arm_scale] = 0
+                res[x:x + arm_scale, y + arm_scale // 2] = 3
+                res[x + arm_scale - 1, y:y + arm_scale] = 3
+                break
+
+        res = up_scaler(res, 10)
+        n_grid = res
         size_i, size_j = n_grid.shape
         channels = 3
 
@@ -205,15 +244,43 @@ class ArmEnv(CoreEnv):
         # Set the RGB values
         for x in range(img.shape[0]):
             for y in range(img.shape[1]):
+                if n_grid[x][y] == 0:
+                    img[x][y] = [255, 255, 255]
+
                 if n_grid[x][y] == 1:
-                    img[x][y] = (230, 200, 150)
+                    img[x][y] = [39, 55, 8]
 
                 if n_grid[x][y] == 2:
-                    img[x][y] = (204, 0, 0)
+                    img[x][y] = [204, 0, 0]
 
                 if n_grid[x][y] == 3:
-                    img[x][y] = (51, 153, 255)
+                    img[x][y] = [51, 153, 255]
+        # return np.transpose(img, (2, 1, 0))
         return img
+
+    # @staticmethod
+    # def render_to_image2(n_grid):
+    #     # n_grid = up_scaler(n_grid, 20)
+    #
+    #     size_i, size_j = n_grid.shape
+    #     channels = 3
+    #
+    #     # Create an empty image
+    #     img = np.zeros((size_i, size_j, channels), dtype=np.uint8)
+    #
+    #     # Set the RGB values
+    #     for x in range(img.shape[0]):
+    #         for y in range(img.shape[1]):
+    #             if n_grid[x][y] == 1:
+    #                 img[x][y] = [230, 200, 150]
+    #                 img[x][y] = [255, 255, 255]
+    #
+    #             if n_grid[x][y] == 2:
+    #                 img[x][y] = [204, 0, 0]
+    #
+    #             if n_grid[x][y] == 3:
+    #                 img[x][y] = [51, 153, 255]
+    #     return img
 
     def get_current_state(self):
         return self._current_state
