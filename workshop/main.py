@@ -2,10 +2,11 @@ import json
 
 from HAM.HAM_core import Stop, Start, Action, Choice, AbstractMachine, MachineRelation, MachineGraph
 from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, plot_multi, PlotParams
-from environments.arm_env.arm_env import ArmEnvToggleTopOnly
+from environments.arm_env.arm_env import ArmEnvToggleTopOnly, ArmEnv
 from workshop.check_graphs import generate_good_graph_ids, generate_machines_by_ids, generate_good_graphs
 from workshop.generate_graph import MachineStored
 import sys
+import imageio
 
 
 def compress_graphs_dicts(g_list):
@@ -101,14 +102,17 @@ def part_three(env):
                 to_plot = list()
                 to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
                 total_reward = sum(params.logs["ep_rewards"])
-                print(total_reward)
+                # print(total_reward)
                 on_model_part_str = str(on_model_part)
                 if on_model_part_str in cluster_best_result_mapper:
                     if cluster_best_result_mapper[on_model_part_str] < total_reward:
                         cluster_best_result_mapper[on_model_part_str], cluster_best_machine_mapper[on_model_part_str] = total_reward, ms.to_dict()
                 else:
                     cluster_best_result_mapper[on_model_part_str], cluster_best_machine_mapper[on_model_part_str] = total_reward, ms.to_dict()
-
+                # print('\n')
+                for i in ms.vertex_types:
+                    print(i)
+                print(on_model_part_str, total_reward)
         with open("machines_part_three.json", "w") as out_f:
             json.dump(obj=cluster_best_machine_mapper, fp=out_f, sort_keys=True, indent=4)
 
@@ -133,11 +137,12 @@ def part_four(env):
                on_model_mapping=cluster_best_machine_mapper,
                no_output=True,
                )
+        for cluster in cluster_best_machine_mapper:
+            ms = MachineStored.ms_from_machine(cluster_best_machine_mapper[cluster], env)
+            ms.draw(filename=str(cluster))
         to_plot = list()
-        to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
-        total_reward = sum(params.logs["ep_rewards"])
-        print("united:", total_reward)
-        plot_multi(to_plot, filename="diagrampics")
+        to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="clustering, same env"))
+        plot_multi(to_plot, filename="a")
 
 
 def part_five(env):
@@ -154,24 +159,24 @@ def part_five(env):
         params = HAMParamsCommon(env)
 
         runner(ham=AutoMachineSimple(env),
-               num_episodes=5000,
+               num_episodes=1000,
                env=env,
                params=params,
                on_model_mapping=cluster_best_machine_mapper,
-               no_output=True,
+               # no_output=True,
                )
         to_plot = list()
         to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="clustering"))
 
+        save_to_gif("olololo", params.logs["gif"][-1])
 
         params = HAMParamsCommon(env)
-
         runner(ham=AutoMachineSimple(env),
-               num_episodes=5000,
+               num_episodes=1000,
                env=env,
                params=params,
                on_model_mapping={},
-               no_output=True,
+               # no_output=True,
                )
         to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="q-learning"))
 
@@ -188,7 +193,11 @@ def runner(ham, num_episodes, env, params, on_model_mapping, no_output=None, ):
                 on_model_mapping[env.get_on_model()].run(params)
             else:
                 ham.run(params)
-        # env.render()
+                # print("****" * 10)
+                # print(env.get_on_model())
+                # env.render()
+                # print("\n")
+
         if i_episode % 10 == 0:
             if no_output is None:
                 print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
@@ -211,18 +220,23 @@ class AutoMachineSimple(AbstractMachine):
         super().__init__(graph=MachineGraph(transitions=transitions))
 
 
-def main():
+def test_draw_gid():
+    env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=50, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
+
     def get_on_model(self):
         return self.get_arm_x(), self.is_cube_graped()
 
     def get_all_on_model(self):
         res = []
-        for height in range(1, self._size_x + 1):
+        for height in range(0, self._size_x):
             for graped in [True, False]:
+                if height == self._size_x - 1 and graped is True:
+                    continue
                 res.append((height, graped))
         return res
 
     def get_arm_x(self):
+        return self._arm_x
         return self._size_x - self._arm_x
 
     def is_cube_graped(self):
@@ -235,8 +249,60 @@ def main():
     ArmEnvToggleTopOnly.is_cube_graped = is_cube_graped
     ArmEnvToggleTopOnly.get_on_model = get_on_model
 
-    # env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
-    env = ArmEnvToggleTopOnly(size_x=4, size_y=3, cubes_cnt=3, episode_max_length=300, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=3)
+    params = HAMParamsCommon(env)
+
+    runner(ham=AutoMachineSimple(env),
+           num_episodes=1,
+           env=env,
+           params=params,
+           on_model_mapping={},
+           no_output=True,
+           )
+
+    save_to_gif("olololo", params.logs["gif"][0])
+    # imageio.mimsave('movie.gif', images)
+    # numpngw.write_apng('foo.png', images, delay=250, use_palette=True)
+
+    exit(0)
+
+
+def save_to_gif(filename, grids):
+    images = []
+    for i in grids:
+        images.append(ArmEnv.render_to_image(i))
+
+    imageio.mimsave(filename + ".gif", ims=images, duration=0.2)
+
+
+def main():
+    def get_on_model(self):
+        return self.get_arm_x(), self.is_cube_graped()
+
+    def get_all_on_model(self):
+        res = []
+        for height in range(0, self._size_x):
+            for graped in [True, False]:
+                if height == self._size_x - 1 and graped:
+                    continue
+                res.append((height, graped))
+        return res
+
+    def get_arm_x(self):
+        return self._arm_x
+        return self._size_x - self._arm_x
+
+    def is_cube_graped(self):
+        cube_dx, cube_dy = self.MOVE_ACTIONS[self.ACTIONS.DOWN]
+        cube_x, cube_y = self._arm_x + cube_dx, self._arm_y + cube_dy
+        return self._magnet_toggle and self.ok(cube_x, cube_y) and self._grid[cube_x][cube_y] == 1
+
+    ArmEnvToggleTopOnly.get_arm_x = get_arm_x
+    ArmEnvToggleTopOnly.get_all_on_model = get_all_on_model
+    ArmEnvToggleTopOnly.is_cube_graped = is_cube_graped
+    ArmEnvToggleTopOnly.get_on_model = get_on_model
+
+    env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
+    # env = ArmEnvToggleTopOnly(size_x=4, size_y=3, cubes_cnt=3, episode_max_length=300, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=3)
 
     vertexes = sorted([
         Stop(),
@@ -256,13 +322,12 @@ def main():
         # Choice(),
     ])
 
-    # part_one(env, vertexes)
-    # part_two(env)
-    # part_three(env)
-    # part_four(env)
+    part_one(env, vertexes)
+    part_two(env)
+    part_three(env)
+    part_four(env)
 
-
-    env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=300, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=4)
+    env = ArmEnvToggleTopOnly(size_x=6, size_y=4, cubes_cnt=5, episode_max_length=800, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=5)
     part_five(env)
 
 
