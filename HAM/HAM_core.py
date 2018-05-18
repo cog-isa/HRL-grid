@@ -439,6 +439,11 @@ class Action(MachineVertex):
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
 
+            if "gif" not in own_machine.params.logs:
+                own_machine.params.logs["gif"] = [[]]
+            if done:
+                own_machine.params.logs["gif"].append([])
+            own_machine.params.logs["gif"][-1].append(own_machine.params.env.get_grid())
         # return next vertex
         return own_machine.graph.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
 
