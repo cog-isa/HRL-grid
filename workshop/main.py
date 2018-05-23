@@ -1,4 +1,6 @@
+import collections
 import json
+import operator
 
 from HAM.HAM_core import Stop, Start, Action, Choice, AbstractMachine, MachineRelation, MachineGraph
 from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, plot_multi, PlotParams
@@ -24,7 +26,7 @@ def compress_graphs_dicts(g_list):
 
 
 def part_one(env, vertexes):
-    t = compress_graphs_dicts([_.to_dict() for _ in generate_good_graphs(env=env, vertexes=vertexes, vertex_count=3)])
+    t = compress_graphs_dicts([_.to_dict() for _ in generate_good_graphs(env=env, vertexes=vertexes, vertex_count=6)])
     with open("machines_part_one.json", "w") as out_f:
         json.dump(t, fp=out_f, sort_keys=True, indent=4)
 
@@ -85,48 +87,59 @@ def part_three(env):
 
         cluster_best_result_mapper = {}
         cluster_best_machine_mapper = {}
-
+        clusters_to_save = {}
         for on_model_part in list(reversed(env.get_all_on_model())):
-            for ms in machines:
+            for index, ms in enumerate(machines):
                 machine = ms.get_machine()
+                total_reward = 0
+                for tests in range(5):
+                    params = HAMParamsCommon(env)
 
-                params = HAMParamsCommon(env)
-
-                runner(ham=AutoMachineSimple(env),
-                       num_episodes=300,
-                       env=env,
-                       params=params,
-                       on_model_mapping={on_model_part: machine},
-                       no_output=True,
-                       )
-                to_plot = list()
-                to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
-                total_reward = sum(params.logs["ep_rewards"])
+                    runner(ham=AutoMachineSimple(env),
+                           num_episodes=30,
+                           env=env,
+                           params=params,
+                           on_model_mapping={on_model_part: machine},
+                           no_output=True,
+                           )
+                    to_plot = list()
+                    to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
+                    total_reward += sum(params.logs["ep_rewards"])
                 # print(total_reward)
                 on_model_part_str = str(on_model_part)
                 if on_model_part_str in cluster_best_result_mapper:
                     if cluster_best_result_mapper[on_model_part_str] < total_reward:
                         cluster_best_result_mapper[on_model_part_str], cluster_best_machine_mapper[on_model_part_str] = total_reward, ms.to_dict()
+                        clusters_to_save[on_model_part_str] = {"total_reward": total_reward, "graph_dict": ms.to_dict()}
                 else:
                     cluster_best_result_mapper[on_model_part_str], cluster_best_machine_mapper[on_model_part_str] = total_reward, ms.to_dict()
+                    clusters_to_save[on_model_part_str] = {"total_reward": total_reward, "graph_dict": ms.to_dict()}
                 # print('\n')
+                print("****")
+                ms_len = len(machines)
+                print("machine {index} of {ms_len}".format(**locals()))
+                print()
                 for i in ms.vertex_types:
                     print(i)
                 print(on_model_part_str, total_reward)
+        # print(clusters_to_save)
+        # exit(0)
         with open("machines_part_three.json", "w") as out_f:
-            json.dump(obj=cluster_best_machine_mapper, fp=out_f, sort_keys=True, indent=4)
+            json.dump(obj=clusters_to_save, fp=out_f, sort_keys=True, indent=4)
 
 
 def part_four(env):
     with open("machines_part_three.json") as json_file:
         cluster_best_machine_mapper_str_key = json.load(json_file)
         cluster_best_machine_mapper = {}
+
         for key in cluster_best_machine_mapper_str_key:
             tuple_key = key
+            # tuple_key = key
             tuple_key = tuple_key.replace("(", "")
             tuple_key = tuple_key.replace(")", "")
             tuple_key = tuple(map(eval, tuple_key.split(",")))
-            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key], env=env).get_machine()
+            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env).get_machine()
 
         params = HAMParamsCommon(env)
 
@@ -154,12 +167,12 @@ def part_five(env):
             tuple_key = tuple_key.replace("(", "")
             tuple_key = tuple_key.replace(")", "")
             tuple_key = tuple(map(eval, tuple_key.split(",")))
-            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key], env=env).get_machine()
+            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env).get_machine()
 
         params = HAMParamsCommon(env)
 
         runner(ham=AutoMachineSimple(env),
-               num_episodes=1000,
+               num_episodes=700,
                env=env,
                params=params,
                on_model_mapping=cluster_best_machine_mapper,
@@ -172,7 +185,98 @@ def part_five(env):
 
         params = HAMParamsCommon(env)
         runner(ham=AutoMachineSimple(env),
-               num_episodes=1000,
+               num_episodes=700,
+               env=env,
+               params=params,
+               on_model_mapping={},
+               # no_output=True,
+               )
+        to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="q-learning"))
+
+        plot_multi(to_plot, filename="b")
+
+
+def part_six(env):
+    #
+
+    with open("machines_part_three.json") as json_file:
+        cluster_best_machine_mapper_str_key = json.load(json_file)
+        ololo_mapping = {}
+        ololo_to_sort = []
+        for key in cluster_best_machine_mapper_str_key:
+            tuple_key = key
+            tuple_key = tuple_key.replace("(", "")
+            tuple_key = tuple_key.replace(")", "")
+            tuple_key = tuple(map(eval, tuple_key.split(",")))
+            ololo_mapping[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env).get_machine()
+            ololo_to_sort.append([cluster_best_machine_mapper_str_key[key]["total_reward"], tuple_key])
+
+        best_clusters = {}
+
+        for i in sorted(ololo_to_sort, reverse=True):
+            key = i[1]
+            print(key, type(key), key[0])
+
+            # print(ololo_mapping[key])
+
+
+            params = HAMParamsCommon(env)
+            runner(ham=AutoMachineSimple(env),
+                   num_episodes=300,
+                   env=env,
+                   params=params,
+                   on_model_mapping={**best_clusters, key: ololo_mapping[key]},
+                   )
+            total_reward_a = sum(params.logs["ep_rewards"])
+
+            params = HAMParamsCommon(env)
+            runner(ham=AutoMachineSimple(env),
+                   num_episodes=300,
+                   env=env,
+                   params=params,
+                   on_model_mapping={**best_clusters},
+                   )
+            total_reward_b = sum(params.logs["ep_rewards"])
+            if total_reward_a > total_reward_b:
+                best_clusters[key] = ololo_mapping[key]
+            print()
+            print(total_reward_a, " ::: ", total_reward_b)
+        clusters_to_save = {}
+        for i in best_clusters:
+            on_model_part_str = str(i)
+            clusters_to_save[on_model_part_str] = MachineStored.ms_from_machine(best_clusters[i], env=env).to_dict()
+        with open("machines_part_six.json", "w") as out_f:
+            json.dump(obj=clusters_to_save, fp=out_f, sort_keys=True, indent=4)
+
+
+def part_seven(env):
+    with open("machines_part_six.json") as json_file:
+        cluster_best_machine_mapper_str_key = json.load(json_file)
+        cluster_best_machine_mapper = {}
+        for key in cluster_best_machine_mapper_str_key:
+            tuple_key = key
+            tuple_key = tuple_key.replace("(", "")
+            tuple_key = tuple_key.replace(")", "")
+            tuple_key = tuple(map(eval, tuple_key.split(",")))
+            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key], env=env).get_machine()
+
+        params = HAMParamsCommon(env)
+
+        runner(ham=AutoMachineSimple(env),
+               num_episodes=3700,
+               env=env,
+               params=params,
+               on_model_mapping=cluster_best_machine_mapper,
+               # no_output=True,
+               )
+        to_plot = list()
+        to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="clustering"))
+
+        save_to_gif("olololo", params.logs["gif"][-1])
+
+        params = HAMParamsCommon(env)
+        runner(ham=AutoMachineSimple(env),
+               num_episodes=3700,
                env=env,
                params=params,
                on_model_mapping={},
@@ -280,7 +384,7 @@ def main():
 
     def get_all_on_model(self):
         res = []
-        for height in range(0, self._size_x):
+        for height in range(0, self._size_x-1):
             for graped in [True, False]:
                 if height == self._size_x - 1 and graped:
                     continue
@@ -301,8 +405,8 @@ def main():
     ArmEnvToggleTopOnly.is_cube_graped = is_cube_graped
     ArmEnvToggleTopOnly.get_on_model = get_on_model
 
-    env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
-    # env = ArmEnvToggleTopOnly(size_x=4, size_y=3, cubes_cnt=3, episode_max_length=300, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=3)
+    # env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
+    env = ArmEnvToggleTopOnly(size_x=4, size_y=3, cubes_cnt=3, episode_max_length=200, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=3)
 
     vertexes = sorted([
         Stop(),
@@ -322,13 +426,15 @@ def main():
         # Choice(),
     ])
 
-    part_one(env, vertexes)
-    part_two(env)
+    # part_one(env, vertexes)
+    # part_two(env)
     part_three(env)
-    part_four(env)
+    # part_four(env)
+    part_six(env)
 
+    # env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
     env = ArmEnvToggleTopOnly(size_x=6, size_y=4, cubes_cnt=5, episode_max_length=800, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=5)
-    part_five(env)
+    part_seven(env)
 
 
 if __name__ == '__main__':
