@@ -36,7 +36,7 @@ def maze_world_input_01():
 
 
 def plot_multi(p_params, filename=None):
-    plotting.plot_multi_test(smoothing_window=1,
+    plotting.plot_multi_test(smoothing_window=30,
                              x_label="episode",
                              y_label="smoothed rewards",
                              curve_to_draw=[_.curve_to_draw for _ in p_params],
