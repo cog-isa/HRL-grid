@@ -438,7 +438,7 @@ class Action(MachineVertex):
 
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
-
+            own_machine.params.eps *= 0.9999
             if "gif" not in own_machine.params.logs:
                 own_machine.params.logs["gif"] = [[]]
             if done:
