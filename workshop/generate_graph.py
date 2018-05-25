@@ -9,13 +9,15 @@ from utils.graph_drawer import draw_graph
 class MachineStored:
     @staticmethod
     def ms_from_machine(machine: AbstractMachine, env):
+        # TODO fix bug with double edges instead of on model
         vertex_types = sorted(machine.graph.vertices)
         graph_id = 0
         for left_ind in range(len(vertex_types)):
             for right_ind in range(len(vertex_types)):
-                for vertex in machine.graph.vertex_mapping[vertex_types[left_ind]]:
-                    if vertex.right is vertex_types[right_ind]:
-                        graph_id |= (2 ** (left_ind * len(vertex_types) + right_ind))
+                for relation in machine.graph.vertex_mapping[vertex_types[left_ind]]:
+                    if relation.right is vertex_types[right_ind]:
+                        if relation.label is None:
+                            graph_id |= (2 ** (left_ind * len(vertex_types) + right_ind))
 
         return MachineStored(vertex_types=vertex_types, binary_matrix_representation=graph_id, env=env)
 
