@@ -139,19 +139,21 @@ def part_four(env):
             tuple_key = tuple_key.replace("(", "")
             tuple_key = tuple_key.replace(")", "")
             tuple_key = tuple(map(eval, tuple_key.split(",")))
-            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env).get_machine()
-
+            cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env)
+        cluster_best_machine_mapper_machine = {}
+        for i in cluster_best_machine_mapper:
+            cluster_best_machine_mapper_machine[i] = cluster_best_machine_mapper[i].get_machine()
         params = HAMParamsCommon(env)
 
         runner(ham=AutoMachineSimple(env),
                num_episodes=300,
                env=env,
                params=params,
-               on_model_mapping=cluster_best_machine_mapper,
+               on_model_mapping=cluster_best_machine_mapper_machine,
                no_output=True,
                )
         for cluster in cluster_best_machine_mapper:
-            ms = MachineStored.ms_from_machine(cluster_best_machine_mapper[cluster], env)
+            ms = cluster_best_machine_mapper[cluster]
             ms.draw(filename=str(cluster))
         to_plot = list()
         to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="clustering, same env"))
@@ -208,7 +210,7 @@ def part_six(env):
             tuple_key = tuple_key.replace("(", "")
             tuple_key = tuple_key.replace(")", "")
             tuple_key = tuple(map(eval, tuple_key.split(",")))
-            ololo_mapping[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env).get_machine()
+            ololo_mapping[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key]["graph_dict"], env=env)
             ololo_to_sort.append([cluster_best_machine_mapper_str_key[key]["total_reward"], tuple_key])
 
         best_clusters = {}
@@ -218,25 +220,38 @@ def part_six(env):
             print(key, type(key), key[0])
 
             # print(ololo_mapping[key])
+            total_reward_a = 0
+            for i in range(10):
+                params = HAMParamsCommon(env)
+                to_run = {}
+                ss = {**best_clusters, key: ololo_mapping[key]}
+                for i in ss:
+                    to_run[i] = ss[i].get_machine()
 
+                runner(ham=AutoMachineSimple(env),
+                       num_episodes=800,
+                       env=env,
+                       params=params,
+                       on_model_mapping=to_run,
+                       )
+                total_reward_a += sum(params.logs["ep_rewards"])
 
-            params = HAMParamsCommon(env)
-            runner(ham=AutoMachineSimple(env),
-                   num_episodes=300,
-                   env=env,
-                   params=params,
-                   on_model_mapping={**best_clusters, key: ololo_mapping[key]},
-                   )
-            total_reward_a = sum(params.logs["ep_rewards"])
+            total_reward_b = 0
+            for i in range(10):
+                to_run = {}
+                ss = {**best_clusters}
+                for i in ss:
+                    to_run[i] = ss[i].get_machine()
+                to_run = {}
+                params = HAMParamsCommon(env)
+                runner(ham=AutoMachineSimple(env),
+                       num_episodes=800,
+                       env=env,
+                       params=params,
+                       on_model_mapping=to_run,
+                       )
+                total_reward_b += sum(params.logs["ep_rewards"])
 
-            params = HAMParamsCommon(env)
-            runner(ham=AutoMachineSimple(env),
-                   num_episodes=300,
-                   env=env,
-                   params=params,
-                   on_model_mapping={**best_clusters},
-                   )
-            total_reward_b = sum(params.logs["ep_rewards"])
             if total_reward_a > total_reward_b:
                 best_clusters[key] = ololo_mapping[key]
             print()
@@ -244,7 +259,7 @@ def part_six(env):
         clusters_to_save = {}
         for i in best_clusters:
             on_model_part_str = str(i)
-            clusters_to_save[on_model_part_str] = MachineStored.ms_from_machine(best_clusters[i], env=env).to_dict()
+            clusters_to_save[on_model_part_str] = best_clusters[i].to_dict()
         with open("machines_part_six.json", "w") as out_f:
             json.dump(obj=clusters_to_save, fp=out_f, sort_keys=True, indent=4)
 
@@ -259,11 +274,11 @@ def part_seven(env):
             tuple_key = tuple_key.replace(")", "")
             tuple_key = tuple(map(eval, tuple_key.split(",")))
             cluster_best_machine_mapper[tuple_key] = MachineStored.from_dict(cluster_best_machine_mapper_str_key[key], env=env).get_machine()
-
+            MachineStored.from_dict(cluster_best_machine_mapper_str_key[key], env=env).draw("ololo"+str(key))
         params = HAMParamsCommon(env)
 
         runner(ham=AutoMachineSimple(env),
-               num_episodes=3700,
+               num_episodes=2000,
                env=env,
                params=params,
                on_model_mapping=cluster_best_machine_mapper,
@@ -276,7 +291,7 @@ def part_seven(env):
 
         params = HAMParamsCommon(env)
         runner(ham=AutoMachineSimple(env),
-               num_episodes=3700,
+               num_episodes=2000,
                env=env,
                params=params,
                on_model_mapping={},
@@ -284,7 +299,7 @@ def part_seven(env):
                )
         to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="q-learning"))
 
-        plot_multi(to_plot, filename="b")
+        plot_multi(to_plot, filename="ololo_result")
 
 
 def runner(ham, num_episodes, env, params, on_model_mapping, no_output=None, ):
@@ -384,7 +399,7 @@ def main():
 
     def get_all_on_model(self):
         res = []
-        for height in range(0, self._size_x-1):
+        for height in range(0, self._size_x - 1):
             for graped in [True, False]:
                 if height == self._size_x - 1 and graped:
                     continue
@@ -428,12 +443,12 @@ def main():
 
     # part_one(env, vertexes)
     # part_two(env)
-    part_three(env)
+    # part_three(env)
     # part_four(env)
-    part_six(env)
+    env = ArmEnvToggleTopOnly(size_x=6, size_y=4, cubes_cnt=5, episode_max_length=800, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=5)
+    # part_six(env)
 
     # env = ArmEnvToggleTopOnly(size_x=5, size_y=4, cubes_cnt=4, episode_max_length=500, finish_reward=100, action_minus_reward=-0.001, tower_target_size=4)
-    env = ArmEnvToggleTopOnly(size_x=6, size_y=4, cubes_cnt=5, episode_max_length=800, finish_reward=100, action_minus_reward=-0.00001, tower_target_size=5)
     part_seven(env)
 
 
