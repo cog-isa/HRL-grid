@@ -134,6 +134,8 @@ class Agent:
             count = 0
             while not self.is_terminal(node) and not self.is_parent_terminates(node):
                 a = self.greed_act(node, s)
+                # TODO move logic to greed act and choose only across possible transitions
+                # TODO if there is no such ones raise an error
                 for _ in range(100):
                     if not self.is_terminal(a):
                         break
