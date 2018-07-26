@@ -1,3 +1,5 @@
+seaborn
+tqdm
 gym
 scipy
 pandas

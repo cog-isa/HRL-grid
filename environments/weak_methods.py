@@ -5,6 +5,7 @@ import sys
 from collections import defaultdict
 
 import numpy as np
+from tqdm import tqdm
 
 from environments.arm_env.arm_env import ArmEnv
 from environments.env_utils import EnvForTesting, EnvForTesting2
@@ -28,13 +29,10 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9, q_table=None):
     if q_table is None:
         q_table = defaultdict(lambda: 0)
 
-    for i_episode in range(num_episodes):
+    for i_episode in tqdm(range(num_episodes), postfix="Q-learning"):
         # Print out which episode we're on, useful for debugging.
         ep_reward = 0
-        if (i_episode + 1) % 10 == 0:
-            print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
-            sys.stdout.flush()
-            eps = eps - 0.01 * eps
+        eps = eps * 0.999
 
         # Reset the environment and pick the first state
         state = env.reset()
