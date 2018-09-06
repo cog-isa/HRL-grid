@@ -16,13 +16,13 @@ import sys
 nb_dir = os.path.split(os.getcwd())[0]
 if nb_dir not in sys.path:
     sys.path.append(nb_dir)
-import utils.plotting as plotting
+import utils_dqn.plotting as plotting
 
 from DQN import dqn
-from utils.dqn_utils import *
+from utils_dqn.dqn_utils import *
 # from atari_wrappers import *
 # from environments.arm_env.arm_env import ArmEnv
-from environments.arm_env_dqn_go_down import ArmEnvDQN_1
+from environments_dqn.arm_env_dqn_go_down import ArmEnvDQN_1
 
 
 def arm_model(img_in, num_actions, scope, reuse=False):

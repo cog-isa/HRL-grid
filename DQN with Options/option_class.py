@@ -1,7 +1,7 @@
 import os
 import sys
 import itertools
-from utils.dqn_utils import *
+from utils_dqn.dqn_utils import *
 
 nb_dir = os.path.split(os.getcwd())[0]
 if nb_dir not in sys.path:

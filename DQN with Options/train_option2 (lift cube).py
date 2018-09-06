@@ -18,10 +18,10 @@ if nb_dir not in sys.path:
 import utils.plotting as plotting
 
 from DQN import dqn
-from utils.dqn_utils import *
+from utils_dqn.dqn_utils import *
 # from atari_wrappers import *
 # from environments.arm_env.arm_env import ArmEnv
-from environments.arm_env_dqn_lift_cube import ArmEnvDQN_2
+from environments_dqn.arm_env_dqn_lift_cube import ArmEnvDQN_2
 
 
 def arm_model(img_in, num_actions, scope, reuse=False):

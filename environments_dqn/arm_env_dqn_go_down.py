@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from gym import spaces
 import gym
-from environments.arm_env_dqn import up_scaler, ArmEnvDQN
+from environments_dqn.arm_env_dqn import up_scaler, ArmEnvDQN
 
 
 class ArmEnvDQN_1(ArmEnvDQN):

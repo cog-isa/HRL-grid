@@ -13,14 +13,14 @@ import sys
 nb_dir = os.path.split(os.getcwd())[0]
 if nb_dir not in sys.path:
     sys.path.append(nb_dir)
-import utils.plotting as plotting
+import utils_dqn.plotting as plotting
 
 # import dqn_with_options_v2 as dqn
 import dqn_with_options as dqn
-from utils.dqn_utils import *
+from utils_dqn.dqn_utils import *
 #from atari_wrappers import *
 #from environments.arm_env.arm_env import ArmEnv
-from environments.arm_env_dqn_with_options import ArmEnvDQN
+from environments_dqn.arm_env_dqn import ArmEnvDQN
 from option_class import option
 
 
