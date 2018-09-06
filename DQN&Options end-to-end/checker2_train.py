@@ -6,7 +6,7 @@ import numpy as np
 import random
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
-from utils.dqn_utils import *
+from utils_dqn.dqn_utils import *
 
 import datetime
 

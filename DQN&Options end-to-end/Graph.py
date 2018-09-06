@@ -15,7 +15,7 @@ nb_dir = os.path.split(os.getcwd())[0]
 if nb_dir not in sys.path:
     sys.path.append(nb_dir)
 
-from environments.arm_env_dqn import ArmEnvDQN
+from environments_dqn.arm_env_dqn import ArmEnvDQN
 
 
 def get_session():

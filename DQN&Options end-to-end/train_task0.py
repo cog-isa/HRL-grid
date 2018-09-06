@@ -17,9 +17,9 @@ if nb_dir not in sys.path:
     sys.path.append(nb_dir)
 
 import dqn_task0 as dqn
-from utils.dqn_utils import *
-from environments.arm_env_dqn import ArmEnvDQN
-import utils.plotting as plotting
+from utils_dqn.dqn_utils import *
+from environments_dqn.arm_env_dqn import ArmEnvDQN
+import utils_dqn.plotting as plotting
 
 
 def conv_model(input_data, scope, flatten=True, reuse=False):

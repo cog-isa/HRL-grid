@@ -17,9 +17,9 @@ if nb_dir not in sys.path:
 
 # from DQN import dqn
 # from DQN.dqn_utils import *
-from environments.arm_env_dqn import ArmEnvDQN
-from environments.arm_env_dqn_go_down import ArmEnvDQN_1
-from environments.arm_env_dqn_lift_cube import ArmEnvDQN_2
+from environments_dqn.arm_env_dqn import ArmEnvDQN
+from environments_dqn.arm_env_dqn_go_down import ArmEnvDQN_1
+from environments_dqn.arm_env_dqn_lift_cube import ArmEnvDQN_2
 
 def encode_observation(frame):
     img_h, img_w = frame.shape[1], frame.shape[2]
