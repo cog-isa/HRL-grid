@@ -1,17 +1,11 @@
-import argparse
-import gym
-from gym import wrappers
-import os.path as osp
+import os
 import random
+import sys
+import time
+
 import numpy as np
-import itertools
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
-import time
-import datetime
-
-import os
-import sys
 
 nb_dir = os.path.split(os.getcwd())[0]
 if nb_dir not in sys.path:
