@@ -122,15 +122,15 @@ def grid_maze_env():
 
 
 def arm_env():
-    env = ArmEnv(episode_max_length=300,
-                 size_x=5,
-                 size_y=3,
-                 cubes_cnt=4,
+    env = ArmEnv(episode_max_length=500,
+                 size_x=10,
+                 size_y=10,
+                 cubes_cnt=5,
                  action_minus_reward=-1,
-                 finish_reward=100,
-                 tower_target_size=4)
+                 finish_reward=1000,
+                 tower_target_size=5)
 
-    ep_length = 800
+    ep_length = 10000
     # q-learning policy on MazeWorldEpisodeLength
     q_stats, q_table = q_learning(env, ep_length)
     s, t = check_policy(env, q_table)
