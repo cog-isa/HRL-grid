@@ -1,0 +1,2 @@
+model_checkpoint_path: "flat_graph.ckpt"
+all_model_checkpoint_paths: "flat_graph.ckpt"
