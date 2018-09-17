@@ -19,7 +19,7 @@ if nb_dir not in sys.path:
 import dqn
 from utils_dqn.dqn_utils import *
 from environments_dqn.arm_env_dqn import ArmEnvDQN
-import utils.plotting as plotting
+import utils_dqn.plotting as plotting
 
 
 def arm_model(img_in, num_actions, scope, reuse=False):
@@ -129,14 +129,14 @@ def createFolder(directory):
 
 
 def main():
-    env = ArmEnvDQN(episode_max_length=200,
-                    size_x=4,
-                    size_y=3,
-                    cubes_cnt=3,
+    env = ArmEnvDQN(episode_max_length=800,
+                    size_x=7,
+                    size_y=5,
+                    cubes_cnt=4,
                     scaling_coeff=3,
                     action_minus_reward=-1,
-                    finish_reward=200,
-                    tower_target_size=3)
+                    finish_reward=800,
+                    tower_target_size=4)
 
     # create a new folder for this experiment
     os.chdir('../experiments/plain DQN/')
@@ -148,7 +148,7 @@ def main():
     env.write_env_spec('../experiments/plain DQN/' + dir_name + '/specifications.txt')
 
     session = get_session()
-    ep_rew, ep_len = arm_learn(env, session, scope_name="dqn", num_timesteps=150000,
+    ep_rew, ep_len = arm_learn(env, session, scope_name="dqn", num_timesteps=1000000,
                                spec_file='../experiments/plain DQN/' + dir_name + '/specifications.txt',
                                exp_dir='../experiments/plain DQN/' + dir_name)
 
