@@ -1,8 +1,23 @@
+import itertools
+import operator
+from time import sleep
+
 import numpy as np
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 import sys
 from gym.envs.toy_text import discrete
+from tqdm import tqdm
+
+from utils.plotting import plot_multi_test
+
+
+def arg_max_action(q_dict, state, action_space):
+    result_action = 0
+    for action_to in range(action_space):
+        if q_dict[state, action_to] > q_dict[state, result_action]:
+            result_action = action_to
+    return result_action
 
 
 class TwoRooms(discrete.DiscreteEnv):
@@ -42,6 +57,8 @@ class TwoRooms(discrete.DiscreteEnv):
             self.ACTIONS.DOWN: np.array([1, 0]),
         }
 
+        self.mark = []
+
         # building 2-rooms maze
         self._maze = np.full(shape=(7, 12), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
@@ -73,7 +90,7 @@ class TwoRooms(discrete.DiscreteEnv):
                     else:
                         new_state = self.encode(a_n_x, a_n_y)
                     done = self._maze[a_n_x, a_n_y] == co.TARGET
-                    reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else 0.0
+                    reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else -0.01
                     probability = 0.7 if a == a2 else 0.1
                     p[state][a].append((probability, new_state, reward, done))
 
@@ -107,7 +124,7 @@ class TwoRooms(discrete.DiscreteEnv):
     def decode(self, state):
         return state // self.code_middle, state % self.code_middle
 
-    def _render(self, mode='human', close=False):
+    def _render(self, mode='human', close=False, mark=None):
         if close:
             return
 
@@ -118,8 +135,11 @@ class TwoRooms(discrete.DiscreteEnv):
         output = "\n"
         for i in range(maze_size_x):
             for j in range(maze_size_y):
+
                 if self.s == self.encode(i, j):
                     output += " x "
+                elif self.encode(i, j) in self.mark:
+                    output += " b "
                 else:
                     if self._maze[i][j] == 0:
                         output += " . "
@@ -133,4 +153,57 @@ class TwoRooms(discrete.DiscreteEnv):
         outfile.write(output)
 
 
-env = TwoRooms()
+def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
+    to_plot = []
+
+    q_table = defaultdict(lambda: 0)
+
+    bottle_count = defaultdict(lambda: 0)
+    bottle_value = defaultdict(lambda: 0)
+    bottle_count[-1] = 0
+
+    for _ in tqdm(range(num_episodes)):
+        ep_reward = 0
+        eps *= 0.999
+        s = env.reset()
+
+        while True:
+            # sleep(0.05)
+            if np.random.rand(1) < eps:
+                action = np.random.choice(env.action_space.n, size=1)[0]
+            else:
+                action = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
+
+            next_s, reward, done, _ = env.step(action)
+            # best = bottle_count.items()[0]
+            # for i in bottle_count.items():
+            #     pass
+            max_key = max(bottle_count, key=lambda k: bottle_count[k])
+            if eps < 0.05:
+                print(max_key, bottle_count[max_key])
+                env.mark = [max_key]
+                env.render()
+            # best = bottle_count.items(
+            # for i in bottle_count:
+            #     if
+
+            bottle_count[next_s] += 1
+            a = arg_max_action(q_dict=q_table, state=next_s, action_space=env.action_space.n)
+            bottle_value[s] += alpha * (reward + gamma * q_table[next_s, a])
+
+            q_table[s, action] = (1 - alpha) * q_table[s, action] + alpha * (reward + gamma * q_table[next_s, a])
+
+            ep_reward += reward
+            if done:
+                break
+
+            s = next_s
+        to_plot.append(ep_reward)
+    print(list(bottle_count))
+    print(bottle_value)
+
+    return to_plot, q_table
+
+
+q_s, q_t = q_learning(TwoRooms(), 1000)
+plot_multi_test([q_s, ])
