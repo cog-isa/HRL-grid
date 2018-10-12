@@ -1,12 +1,14 @@
 import itertools
 import operator
 from time import sleep
-
+import pandas as pd
 import numpy as np
 from collections import namedtuple, defaultdict
-
+from sklearn.preprocessing import MinMaxScaler
 import sys
 from gym.envs.toy_text import discrete
+from sklearn import preprocessing
+from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
 
 from utils.plotting import plot_multi_test
@@ -135,20 +137,21 @@ class TwoRooms(discrete.DiscreteEnv):
         output = "\n"
         for i in range(maze_size_x):
             for j in range(maze_size_y):
-
+                output += " "
                 if self.s == self.encode(i, j):
-                    output += " x "
+                    output += "x"
                 elif self.encode(i, j) in self.mark:
-                    output += " b "
+                    output += self.mark[self.encode(i, j)]
                 else:
                     if self._maze[i][j] == 0:
-                        output += " . "
+                        output += "."
                     if self._maze[i][j] == 1:
-                        output += " O "
+                        output += "H"
                     if self._maze[i][j] == 2:
-                        output += " F "
+                        output += "F"
                     if self._maze[i][j] == 3:
-                        output += " F "
+                        output += "F"
+                output += " "
             output += '\n'
         outfile.write(output)
 
@@ -160,6 +163,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
 
     bottle_count = defaultdict(lambda: 0)
     bottle_value = defaultdict(lambda: 0)
+    cluster = defaultdict(lambda: None)
     bottle_count[-1] = 0
 
     for _ in tqdm(range(num_episodes)):
@@ -178,11 +182,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             # best = bottle_count.items()[0]
             # for i in bottle_count.items():
             #     pass
-            max_key = max(bottle_count, key=lambda k: bottle_count[k])
-            if eps < 0.05:
-                print(max_key, bottle_count[max_key])
-                env.mark = [max_key]
-                env.render()
+
             # best = bottle_count.items(
             # for i in bottle_count:
             #     if
@@ -190,6 +190,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             bottle_count[next_s] += 1
             a = arg_max_action(q_dict=q_table, state=next_s, action_space=env.action_space.n)
             bottle_value[s] += alpha * (reward + gamma * q_table[next_s, a])
+            cluster[s] = (*env.decode(s), q_table[next_s, a])
 
             q_table[s, action] = (1 - alpha) * q_table[s, action] + alpha * (reward + gamma * q_table[next_s, a])
 
@@ -199,11 +200,32 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
 
             s = next_s
         to_plot.append(ep_reward)
-    print(list(bottle_count))
-    print(bottle_value)
+    sleep(0.1)
 
+    states = sorted(cluster.keys())
+    ss = {"state": states}
+    for i in range(len(cluster[states[0]])):
+        print(str(i))
+        ss[str(i)] = [cluster[_][i] for _ in states]
+
+    df = pd.DataFrame(ss).set_index("state")
+    scaler = MinMaxScaler()
+    for i in df:
+        df[[i]] = scaler.fit_transform(df[[i]])
+    print(df.head())
+    X = df[["0", "1", "2"]]
+    ag = AgglomerativeClustering(n_clusters=3, affinity='euclidean', linkage='ward')
+    clustered = list(ag.fit_predict(X))
+    s = {}
+    for i in range(len(states)):
+        s[states[i]] = str(clustered[i])
+    max_key = max(bottle_count, key=lambda k: bottle_count[k])
+    env.mark = {}
+    env.mark = s
+    env.mark[max_key] = 'b'
+    env.render()
     return to_plot, q_table
 
 
-q_s, q_t = q_learning(TwoRooms(), 1000)
+q_s, q_t = q_learning(TwoRooms(), 10000)
 plot_multi_test([q_s, ])
