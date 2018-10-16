@@ -4,11 +4,11 @@ from time import sleep
 import pandas as pd
 import numpy as np
 from collections import namedtuple, defaultdict
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import sys
 from gym.envs.toy_text import discrete
 from sklearn import preprocessing
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from tqdm import tqdm
 
 from utils.plotting import plot_multi_test
@@ -62,7 +62,7 @@ class TwoRooms(discrete.DiscreteEnv):
         self.mark = []
 
         # building 2-rooms maze
-        self._maze = np.full(shape=(7, 12), fill_value=co.FREE_CELL).astype(np.int32)
+        self._maze = np.full(shape=(12, 16), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
         self._maze[0, :] = self._maze[:, 0] = co.OBSTACLE
         self._maze[self._maze.shape[0] - 1, :] = co.OBSTACLE
@@ -138,10 +138,10 @@ class TwoRooms(discrete.DiscreteEnv):
         for i in range(maze_size_x):
             for j in range(maze_size_y):
                 output += " "
-                if self.s == self.encode(i, j):
-                    output += "x"
-                elif self.encode(i, j) in self.mark:
+                if self.encode(i, j) in self.mark:
                     output += self.mark[self.encode(i, j)]
+                elif self.s == self.encode(i, j):
+                    output += "x"
                 else:
                     if self._maze[i][j] == 0:
                         output += "."
@@ -168,7 +168,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
 
     for _ in tqdm(range(num_episodes)):
         ep_reward = 0
-        eps *= 0.999
+        eps *= 0.9
         s = env.reset()
 
         while True:
@@ -188,9 +188,10 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             #     if
 
             bottle_count[next_s] += 1
-            a = arg_max_action(q_dict=q_table, state=next_s, action_space=env.action_space.n)
-            bottle_value[s] += alpha * (reward + gamma * q_table[next_s, a])
-            cluster[s] = (*env.decode(s), q_table[next_s, a])
+            a = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
+            bottle_value[s] += alpha * (reward + gamma * q_table[s, a])
+            # cluster[s] = (*env.decode(s), q_table[next_s, a])
+            cluster[s] = (*env.decode(s), q_table[s, a])
 
             q_table[s, action] = (1 - alpha) * q_table[s, action] + alpha * (reward + gamma * q_table[next_s, a])
 
@@ -205,27 +206,64 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
     states = sorted(cluster.keys())
     ss = {"state": states}
     for i in range(len(cluster[states[0]])):
-        print(str(i))
         ss[str(i)] = [cluster[_][i] for _ in states]
 
     df = pd.DataFrame(ss).set_index("state")
+    scaler = StandardScaler()
     scaler = MinMaxScaler()
-    for i in df:
-        df[[i]] = scaler.fit_transform(df[[i]])
-    print(df.head())
-    X = df[["0", "1", "2"]]
-    ag = AgglomerativeClustering(n_clusters=3, affinity='euclidean', linkage='ward')
-    clustered = list(ag.fit_predict(X))
-    s = {}
-    for i in range(len(states)):
-        s[states[i]] = str(clustered[i])
-    max_key = max(bottle_count, key=lambda k: bottle_count[k])
-    env.mark = {}
-    env.mark = s
-    env.mark[max_key] = 'b'
-    env.render()
+    # for i in df:
+    #     df[[i]] = scaler.fit_transform(df[[i]])
+    n_clusters = 3
+    affinity = 'euclidean'
+    df = df.rename(index=str, columns={"0": "x", "1": "y", "2": 'V'})
+
+    scaler.fit(np.vstack((df[["x"]], df[["y"]])))
+    df[["x", "y"]] = scaler.transform(df[["x", "y"]])
+
+    def show_info(n_clusters, affinity, X, necks_to_out):
+        print("*****" * 10)
+        print("Clustering for scaled:[", *X, "] into [", n_clusters, "] clusters")
+        print("Affinity:", affinity)
+        ag = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity)
+        # ag = KMeans(n_clusters=n_clusters,)
+        clustered = list(ag.fit_predict(X))
+        s = {}
+        for i in range(len(states)):
+            s[states[i]] = str(clustered[i])
+            # uncomment to show V
+            # s[states[i]] = str(cluster[states[i]][2])
+
+        inv_bottle_count = {v: k for k, v in bottle_count.items()}
+        t = [inv_bottle_count[_] for _ in sorted(inv_bottle_count)]
+        env.mark = {}
+        env.mark = s
+        if len(t) > necks_to_out:
+            for i in t[-necks_to_out:]:
+                env.mark[i] = 'b'
+        env.render()
+        print("\n" * 2)
+
+    X = df[["x", "y", "V"]]
+    X[["V"]] *= 0.5
+    print(X)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=1)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=5)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=10)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=20)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=30)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=40)
+    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=50)
+
+    # show_info(n_clusters=2, affinity="euclidean", X=df[["x", "y"]])
+    # show_info(n_clusters=3, affinity="euclidean", X=df[["x", "y"]])
+    # show_info(n_clusters=4, affinity="euclidean", X=df[["x", "y"]])
+
+    # show_info(n_clusters=2, affinity="euclidean", X=df[["x", "y", "V"]])
+    # show_info(n_clusters=3, affinity="euclidean", X=df[["x", "y", "V"]])
+    # show_info(n_clusters=4, affinity="euclidean", X=df[["x", "y", "V"]])
+
     return to_plot, q_table
 
 
-q_s, q_t = q_learning(TwoRooms(), 10000)
+q_s, q_t = q_learning(TwoRooms(), 1000000)
 plot_multi_test([q_s, ])
