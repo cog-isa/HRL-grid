@@ -1,17 +1,17 @@
-import itertools
-import operator
 from time import sleep
 import pandas as pd
 import numpy as np
 from collections import namedtuple, defaultdict
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import sys
 from gym.envs.toy_text import discrete
-from sklearn import preprocessing
-from sklearn.cluster import AgglomerativeClustering, KMeans
+from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
 
+from HAM.HAM_core import LoopInvokerMachine, AutoBasicMachine
+from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, PlotParams, plot_multi
 from utils.plotting import plot_multi_test
+from workshop.main import AutoMachineSimple
 
 
 def arg_max_action(q_dict, state, action_space):
@@ -43,6 +43,17 @@ class TwoRooms(discrete.DiscreteEnv):
 
     def get_actions_as_dict(self):
         return {_: getattr(self.ACTIONS, _) for _ in self.ACTIONS._fields}
+
+    def get_current_state(self):
+        return self.s
+
+    def is_done(self):
+        return self.done
+
+    def _step(self, a):
+        res = next_s, reward, done, _ = super(TwoRooms, self)._step(a)
+        self.done = done
+        return res
 
     def __init__(self):
 
@@ -111,8 +122,8 @@ class TwoRooms(discrete.DiscreteEnv):
                                        prob, isd)
 
     def _reset(self):
+        self.done = False
         self.s = np.random.choice(self.isd, size=1)[0]
-        self.lastaction = None
         return self.s
 
     def encode(self, x, y):
@@ -160,39 +171,29 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
     to_plot = []
 
     q_table = defaultdict(lambda: 0)
-
-    bottle_count = defaultdict(lambda: 0)
-    bottle_value = defaultdict(lambda: 0)
-    cluster = defaultdict(lambda: None)
-    bottle_count[-1] = 0
+    bns_count = defaultdict(lambda: 0)
+    V = defaultdict(lambda: None)
 
     for _ in tqdm(range(num_episodes)):
         ep_reward = 0
         eps *= 0.9
         s = env.reset()
 
+        bn_added = {}
         while True:
-            # sleep(0.05)
             if np.random.rand(1) < eps:
                 action = np.random.choice(env.action_space.n, size=1)[0]
             else:
                 action = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
 
             next_s, reward, done, _ = env.step(action)
-            # best = bottle_count.items()[0]
-            # for i in bottle_count.items():
-            #     pass
-
-            # best = bottle_count.items(
-            # for i in bottle_count:
-            #     if
-
-            bottle_count[next_s] += 1
             a = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
-            bottle_value[s] += alpha * (reward + gamma * q_table[s, a])
-            # cluster[s] = (*env.decode(s), q_table[next_s, a])
-            cluster[s] = (*env.decode(s), q_table[s, a])
-
+            # noinspection PyTypeChecker
+            V[s] = (*env.decode(s), q_table[s, a])
+            # making +1 to bn_counts once for each episode
+            if not bn_added.get(s, False):
+                bns_count[s] += 1
+                bn_added[s] = True
             q_table[s, action] = (1 - alpha) * q_table[s, action] + alpha * (reward + gamma * q_table[next_s, a])
 
             ep_reward += reward
@@ -203,67 +204,108 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
         to_plot.append(ep_reward)
     sleep(0.1)
 
-    states = sorted(cluster.keys())
-    ss = {"state": states}
-    for i in range(len(cluster[states[0]])):
-        ss[str(i)] = [cluster[_][i] for _ in states]
-
-    df = pd.DataFrame(ss).set_index("state")
-    scaler = StandardScaler()
-    scaler = MinMaxScaler()
-    # for i in df:
-    #     df[[i]] = scaler.fit_transform(df[[i]])
-    n_clusters = 3
-    affinity = 'euclidean'
-    df = df.rename(index=str, columns={"0": "x", "1": "y", "2": 'V'})
-
-    scaler.fit(np.vstack((df[["x"]], df[["y"]])))
-    df[["x", "y"]] = scaler.transform(df[["x", "y"]])
-
-    def show_info(n_clusters, affinity, X, necks_to_out):
-        print("*****" * 10)
-        print("Clustering for scaled:[", *X, "] into [", n_clusters, "] clusters")
-        print("Affinity:", affinity)
+    def get_clusters(V, n_clusters, affinity):
+        states = sorted(V.keys())
+        ss = {"state": states}
+        # noinspection PyTypeChecker
+        for i in range(len(V[states[0]])):
+            ss[str(i)] = [V[_][i] for _ in states]
+        df = pd.DataFrame(ss).set_index("state")
+        sc = MinMaxScaler()
+        df = df.rename(index=str, columns={"0": "x", "1": "y", "2": 'V'})
+        X = df[["x", "y", "V"]]
+        X[["V"]] *= 0.5
+        sc.fit(np.vstack((df[["x"]], df[["y"]])))
+        df[["x", "y"]] = sc.transform(df[["x", "y"]])
         ag = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity)
-        # ag = KMeans(n_clusters=n_clusters,)
         clustered = list(ag.fit_predict(X))
-        s = {}
+        cluster_state_mapping = {}
         for i in range(len(states)):
-            s[states[i]] = str(clustered[i])
-            # uncomment to show V
-            # s[states[i]] = str(cluster[states[i]][2])
+            cluster_state_mapping[states[i]] = clustered[i]
+        return cluster_state_mapping
 
-        inv_bottle_count = {v: k for k, v in bottle_count.items()}
-        t = [inv_bottle_count[_] for _ in sorted(inv_bottle_count)]
-        env.mark = {}
-        env.mark = s
-        if len(t) > necks_to_out:
-            for i in t[-necks_to_out:]:
-                env.mark[i] = 'b'
-        env.render()
-        print("\n" * 2)
+    # all_states = V.keys()
+    n_clusters = 4
+    map_state_to_cluster = get_clusters(V=V, n_clusters=n_clusters, affinity="euclidean")
 
-    X = df[["x", "y", "V"]]
-    X[["V"]] *= 0.5
-    print(X)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=1)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=5)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=10)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=20)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=30)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=40)
-    show_info(n_clusters=3, affinity="euclidean", X=X, necks_to_out=50)
+    def get_bns_in_increasing_order(bns_count):
+        state_count_pairs = sorted([(bns_count[_], _) for _ in bns_count], reverse=True)
+        return list(map(lambda x: x[1], state_count_pairs, ))
 
-    # show_info(n_clusters=2, affinity="euclidean", X=df[["x", "y"]])
-    # show_info(n_clusters=3, affinity="euclidean", X=df[["x", "y"]])
-    # show_info(n_clusters=4, affinity="euclidean", X=df[["x", "y"]])
+    def get_mapping_for_cluster_to_sorted_bns(sorted_bns, map_state_to_cluster):
+        res = defaultdict(lambda: list())
+        for state in sorted_bns:
+            res[map_state_to_cluster[state]].append(state)
+        return res
 
-    # show_info(n_clusters=2, affinity="euclidean", X=df[["x", "y", "V"]])
-    # show_info(n_clusters=3, affinity="euclidean", X=df[["x", "y", "V"]])
-    # show_info(n_clusters=4, affinity="euclidean", X=df[["x", "y", "V"]])
+    # bns = bottlenecks
+    sorted_bns = get_bns_in_increasing_order(bns_count=bns_count)
+    map_cluster_to_sorted_bns = get_mapping_for_cluster_to_sorted_bns(sorted_bns=sorted_bns,
+                                                                      map_state_to_cluster=map_state_to_cluster)
 
+    env.mark = {}
+
+    for current_state in map_state_to_cluster:
+        env.mark[current_state] = str(map_state_to_cluster[current_state])
+
+    class colors:
+        HEADER = '\033[95m'
+        OKBLUE = '\033[94m'
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+
+        COLOR_LIST = [HEADER, OKBLUE, OKGREEN, WARNING, FAIL]
+
+    # draw best bns for clusters
+    BNS_FOR_CLUSTER = 10
+    for q in map_cluster_to_sorted_bns:
+        for j in map_cluster_to_sorted_bns[q][:BNS_FOR_CLUSTER]:
+            env.mark[j] = colors.COLOR_LIST[q % len(colors.COLOR_LIST)] + str(q) + colors.ENDC
+    env.render()
+    env.mark = {}
+
+    def runner(hams, num_episodes, env):
+        for i_episode in range(1, num_episodes + 1):
+            env.reset()
+            while not env.is_done():
+                for ham in hams:
+                    if env.s in ham.states_in_my_cluster:
+                        while not env.is_done() and env.s not in ham.bns:
+                            ham.machine.run(params)
+                        while not env.is_done() and env.s in ham.states_in_my_cluster:
+                            ham.machine.run(params)
+
+            if i_episode % 10 == 0:
+                    print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
+                    sys.stdout.flush()
+
+    class BnsMachine:
+        def __init__(self, params, cluster_index, list_of_bns, states_in_my_cluster):
+            self.machine = AutoMachineSimple(env)
+            self.cluster_index = cluster_index
+            self.bns = set(list_of_bns)
+            self.states_in_my_cluster = states_in_my_cluster
+            self.params = params
+
+    params = HAMParamsCommon(env)
+    hams = [BnsMachine(params=params, cluster_index=_, list_of_bns=map_cluster_to_sorted_bns[_][:BNS_FOR_CLUSTER], states_in_my_cluster=set(map_cluster_to_sorted_bns[_])) for _ in
+            map_cluster_to_sorted_bns]
+
+
+    runner(hams = hams,
+           num_episodes=2000,
+           env=env,
+           )
+    to_plot = list()
+    to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
+    plot_multi(to_plot)
+    # print(params.logs["ep_rewards"])
     return to_plot, q_table
 
 
-q_s, q_t = q_learning(TwoRooms(), 1000000)
-plot_multi_test([q_s, ])
+q_s, q_t = q_learning(TwoRooms(), 5000)
+# plot_multi_test([q_s, ])
