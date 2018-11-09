@@ -230,7 +230,13 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
         df = df.rename(index=str, columns={"0": "x", "1": "y", "2": 'V'})
         X = df[["x", "y", "V"]]
         X[["V"]] *= 0.5
+        # df[["x", "y"]] = df[["x", "y"]].apply(np.float)
+        df["x"] = df["x"].astype(np.float)
+        df["y"] = df["y"].astype(np.float)
+
         sc.fit(np.vstack((df[["x"]], df[["y"]])))
+
+
         df[["x", "y"]] = sc.transform(df[["x", "y"]])
         ag = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity)
         clustered = list(ag.fit_predict(X))
@@ -312,7 +318,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             map_cluster_to_sorted_bns]
 
     runner(hams=hams,
-           num_episodes=2000,
+           num_episodes=500,
            env=env,
            )
     to_plot = list()
@@ -322,5 +328,5 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
     return to_plot, q_table
 
 
-q_s, q_t = q_learning(TwoRooms(), 5000)
+q_s, q_t = q_learning(TwoRooms(), 500)
 # plot_multi_test([q_s, ])

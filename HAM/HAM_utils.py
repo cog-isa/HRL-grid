@@ -46,38 +46,4 @@ def ham_runner(ham, num_episodes, env, params, no_output=None):
                 sys.stdout.flush()
 
 
-def draw_system_machines():
-    s1 = RandomMachine()
-    s2 = LoopInvokerMachine(machine_to_invoke=s1)
-    s3 = RootMachine(machine_to_invoke=s2)
-
-    draw_graph("full_hie", s3.get_graph_to_draw())
-
-
 PlotParams = namedtuple("PlotParams", ["curve_to_draw", "label"])
-
-
-def super_runner(call_me_maybe, env):
-    start = Start()
-    choice_one = Choice()
-    actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
-    stop = Stop()
-
-    call = Call(call_me_maybe)
-    transitions = [MachineRelation(left=start, right=choice_one), ]
-    for action in actions:
-        transitions.append(MachineRelation(left=choice_one, right=action))
-        transitions.append(MachineRelation(left=action, right=stop, label=0))
-        transitions.append(MachineRelation(left=action, right=stop, label=1))
-    transitions.append(MachineRelation(left=choice_one, right=call))
-    transitions.append(MachineRelation(left=call, right=stop))
-
-    return AbstractMachine(graph=MachineGraph(transitions=transitions))
-
-
-def main():
-    draw_system_machines()
-
-
-if __name__ == '__main__':
-    main()
