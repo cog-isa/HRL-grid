@@ -1,6 +1,6 @@
 seaborn==0.9.0
 tqdm
-gym
+gym==0.9.4
 scipy
 pandas
 matplotlib
