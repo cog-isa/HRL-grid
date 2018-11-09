@@ -8,10 +8,25 @@ from gym.envs.toy_text import discrete
 from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
 
-from HAM.HAM_core import LoopInvokerMachine, AutoBasicMachine
-from HAM.HAM_experiments.HAM_utils import HAMParamsCommon, PlotParams, plot_multi
-from utils.plotting import plot_multi_test
-from workshop.main import AutoMachineSimple
+from HAM.HAM_core import AbstractMachine, Start, Choice, Action, Stop, \
+    MachineRelation, MachineGraph
+from HAM.HAM_utils import HAMParamsCommon, PlotParams, plot_multi
+
+
+class AutoMachineSimple(AbstractMachine):
+    def __init__(self, env):
+        start = Start()
+        choice_one = Choice()
+        actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
+        stop = Stop()
+
+        transitions = [MachineRelation(left=start, right=choice_one), ]
+        for action in actions:
+            transitions.append(MachineRelation(left=choice_one, right=action))
+            transitions.append(MachineRelation(left=action, right=stop, label=0))
+            transitions.append(MachineRelation(left=action, right=stop, label=1))
+
+        super().__init__(graph=MachineGraph(transitions=transitions))
 
 
 def arg_max_action(q_dict, state, action_space):
@@ -261,7 +276,7 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
         COLOR_LIST = [HEADER, OKBLUE, OKGREEN, WARNING, FAIL]
 
     # draw best bns for clusters
-    BNS_FOR_CLUSTER = 10
+    BNS_FOR_CLUSTER = 5
     for q in map_cluster_to_sorted_bns:
         for j in map_cluster_to_sorted_bns[q][:BNS_FOR_CLUSTER]:
             env.mark[j] = colors.COLOR_LIST[q % len(colors.COLOR_LIST)] + str(q) + colors.ENDC
@@ -280,8 +295,8 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
                             ham.machine.run(params)
 
             if i_episode % 10 == 0:
-                    print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
-                    sys.stdout.flush()
+                print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
+                sys.stdout.flush()
 
     class BnsMachine:
         def __init__(self, params, cluster_index, list_of_bns, states_in_my_cluster):
@@ -292,11 +307,11 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             self.params = params
 
     params = HAMParamsCommon(env)
-    hams = [BnsMachine(params=params, cluster_index=_, list_of_bns=map_cluster_to_sorted_bns[_][:BNS_FOR_CLUSTER], states_in_my_cluster=set(map_cluster_to_sorted_bns[_])) for _ in
+    hams = [BnsMachine(params=params, cluster_index=_, list_of_bns=map_cluster_to_sorted_bns[_][:BNS_FOR_CLUSTER],
+                       states_in_my_cluster=set(map_cluster_to_sorted_bns[_])) for _ in
             map_cluster_to_sorted_bns]
 
-
-    runner(hams = hams,
+    runner(hams=hams,
            num_episodes=2000,
            env=env,
            )

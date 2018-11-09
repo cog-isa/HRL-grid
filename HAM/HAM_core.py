@@ -3,7 +3,6 @@ import operator
 import sys
 from collections import defaultdict
 
-from environments.arm_env.arm_env import ArmEnv
 from utils import plotting
 
 
@@ -77,12 +76,15 @@ class MachineGraph:
 
     def __init__(self, transitions, vertices=None):
         self.transitions = transitions
-        self.vertices = vertices if vertices is not None else sorted(self.get_vertex_from_transitions(), key=lambda x: x.id)
+        self.vertices = vertices if vertices is not None else sorted(self.get_vertex_from_transitions(),
+                                                                     key=lambda x: x.id)
         self.vertex_mapping = self.get_vertex_mapping()
         self.vertex_reverse_mapping = self.get_vertex_reverse_mapping()
 
-        self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if isinstance(__.left, Choice)}
-        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.vertex_mapping[_]} for _ in self.get_special_vertices(Action)}
+        self.choice_relations = {__.left: {_.id: _ for _ in self.vertex_mapping[__.left]} for __ in transitions if
+                                 isinstance(__.left, Choice)}
+        self.action_vertex_label_mapping = {_: {__.label: __ for __ in self.vertex_mapping[_]} for _ in
+                                            self.get_special_vertices(Action)}
 
 
 class AbstractMachine:
@@ -140,7 +142,8 @@ class AbstractMachine:
             left_vertex = get_str_with_special_for_actions(i.left)
             right_vertex = get_str_with_special_for_actions(i.right)
 
-            graph.append((left_vertex, right_vertex, "f(E)=" + str(i.label) if i.label is not None and no_edges_with_exit_f is None else ""))
+            graph.append((left_vertex, right_vertex,
+                          "f(E)=" + str(i.label) if i.label is not None and no_edges_with_exit_f is None else ""))
 
         for i in self.graph.transitions:
 
@@ -148,8 +151,9 @@ class AbstractMachine:
                 if i.right not in already_added_machines:
                     already_added_machines.append(i.right)
                     if i.right.machine_to_call is not None:
-                        graph = graph + i.right.machine_to_call.get_graph_to_draw(already_added_machines=already_added_machines,
-                                                                                  action_to_name_mapping=action_to_name_mapping)
+                        graph = graph + i.right.machine_to_call.get_graph_to_draw(
+                            already_added_machines=already_added_machines,
+                            action_to_name_mapping=action_to_name_mapping)
         return graph
 
     def __str__(self):
@@ -262,8 +266,12 @@ class RandomMachine(AbstractMachine):
         reachable_vertices = RandomMachine.dfs_get_reachable_vertices(graph=self.graph, vertex=self.graph.get_start())
         for index_i, left in enumerate(reachable_vertices):
             for index_j, right in enumerate(self.graph.vertices):
-                new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left, Action) else MachineRelation(left=left, right=right)
-                if RandomMachine.check_graph(graph=MachineGraph(transitions=self.graph.transitions + [new_machine_relation], vertices=self.graph.vertices)):
+                new_machine_relation = MachineRelation(left=left, right=right, label=0) if isinstance(left,
+                                                                                                      Action) else MachineRelation(
+                    left=left, right=right)
+                if RandomMachine.check_graph(
+                        graph=MachineGraph(transitions=self.graph.transitions + [new_machine_relation],
+                                           vertices=self.graph.vertices)):
                     machine_relation_to_add.append(new_machine_relation)
 
         assert (len(machine_relation_to_add) > 0)
@@ -276,7 +284,8 @@ class RandomMachine(AbstractMachine):
 
     def with_new_vertex(self, env, machines_to_call=()):
         new_vertex = self.create_random_vertex(env=env, machines_to_call=machines_to_call)
-        return RandomMachine(graph=MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices + [new_vertex]))
+        return RandomMachine(
+            graph=MachineGraph(transitions=self.graph.transitions, vertices=self.graph.vertices + [new_vertex]))
 
     def with_new_relation(self):
         # res = MachineGraph(transitions=self.graph.transitions + [self.get_new_possible_relation()], vertices=self.graph.vertices)
@@ -316,6 +325,7 @@ class MachineVertex:
     def __init__(self):
         # set unique id for MachineVertex object
         self.id, MachineVertex.free_id = MachineVertex.free_id, MachineVertex.free_id + 1
+        self.active = False
 
     def __str__(self):
         return "{self.__class__.__name__}{self.id}".format(**locals())
@@ -363,7 +373,7 @@ class Start(MachineVertex):
         return own_machine.graph.vertex_mapping[self][0].right
 
     def __str__(self):
-        return "{self.__class__.__name__}{self.id}".format(**locals())
+        return "{self.__class__.__name__}{self.id}".format(**locals()) + ("[A]" if self.active else "")
 
 
 class Stop(MachineVertex):
@@ -389,11 +399,15 @@ class Choice(MachineVertex):
             own_machine.params.q_value[combined_state] = {_: 0 for _ in own_machine.graph.choice_relations[self].keys()}
 
         if own_machine.params.previous_machine_choice_state is not None:
-            q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice]
-            v = own_machine.params.q_value[combined_state][self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
-            delta = own_machine.params.alpha * (own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
+            q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][
+                own_machine.params.previous_machine_choice]
+            v = own_machine.params.q_value[combined_state][
+                self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
+            delta = own_machine.params.alpha * (
+                        own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
             q += delta
-            own_machine.params.q_value[own_machine.params.previous_machine_choice_state][own_machine.params.previous_machine_choice] = q
+            own_machine.params.q_value[own_machine.params.previous_machine_choice_state][
+                own_machine.params.previous_machine_choice] = q
 
         action = self.get_e_greedy(own_machine.params.q_value[combined_state], eps=own_machine.params.eps)
         own_machine.params.previous_machine_choice_state = combined_state
@@ -435,15 +449,15 @@ class Action(MachineVertex):
             if done:
                 own_machine.params.logs["ep_rewards"].append(own_machine.params.logs["reward"])
                 own_machine.params.logs["reward"] = 0
-
+            # own_machine.params.env.render()
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
             own_machine.params.eps *= 0.9999
-            if "gif" not in own_machine.params.logs:
-                own_machine.params.logs["gif"] = [[]]
-            if done:
-                own_machine.params.logs["gif"].append([])
-            own_machine.params.logs["gif"][-1].append(own_machine.params.env.get_grid())
+            # if "gif" not in own_machine.params.logs:
+            #     own_machine.params.logs["gif"] = [[]]
+            # if done:
+            #     own_machine.params.logs["gif"].append([])
+            # own_machine.params.logs["gif"][-1].append(own_machine.params.env.get_grid())
         # return next vertex
         return own_machine.graph.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
 
@@ -452,7 +466,8 @@ class MachineRelation:
     free_id = 1
 
     def __init__(self, left, right, label=None):
-        assert not (not isinstance(left, Action) and label is not None), "Action state vertex doesn't have specified label"
+        assert not (not isinstance(left,
+                                   Action) and label is not None), "Action state vertex doesn't have specified label"
         assert not (isinstance(left, Action) and label is None), "Non action state vertex has specified label"
 
         self.left = left
@@ -472,83 +487,3 @@ class MachineRelation:
     def __str__(self):
         return str(self.left) + " -> " + str(self.right)
 
-
-def main():
-    env = ArmEnv(episode_max_length=300,
-                 size_x=5,
-                 size_y=3,
-                 cubes_cnt=4,
-                 action_minus_reward=-1,
-                 finish_reward=100,
-                 tower_target_size=4)
-
-    params = HAMParams(q_value={},
-                       env=env,
-                       current_state=None,
-                       eps=0.1,
-                       gamma=0.9,
-                       alpha=0.1,
-                       string_prefix_of_machine=None,
-                       accumulated_discount=1,
-                       accumulated_rewards=0,
-                       previous_machine_choice_state=None,
-                       env_is_done=None,
-                       logs={"reward": 0, "ep_rewards": []},
-                       on_model_transition_id_function=lambda env_: 1 if env_.is_done() else 0,
-                       )
-
-    start = Start()
-    choice_one = Choice()
-    left = Action(action=env.get_actions_as_dict()["LEFT"])
-    right = Action(action=env.get_actions_as_dict()["RIGHT"])
-    up = Action(action=env.get_actions_as_dict()["UP"])
-    down = Action(action=env.get_actions_as_dict()["DOWN"])
-    on = Action(action=env.get_actions_as_dict()["ON"])
-    off = Action(action=env.get_actions_as_dict()["OFF"])
-
-    stop = Stop()
-    simple_machine = AbstractMachine(
-        MachineGraph(transitions=(
-            MachineRelation(left=start, right=choice_one),
-            MachineRelation(left=choice_one, right=left),
-            MachineRelation(left=choice_one, right=right),
-            MachineRelation(left=choice_one, right=up),
-            MachineRelation(left=choice_one, right=down),
-            MachineRelation(left=choice_one, right=on),
-            MachineRelation(left=choice_one, right=off),
-
-            MachineRelation(left=left, right=stop, label=0),
-            MachineRelation(left=right, right=stop, label=0),
-            MachineRelation(left=up, right=stop, label=0),
-            MachineRelation(left=down, right=stop, label=0),
-            MachineRelation(left=on, right=stop, label=0),
-            MachineRelation(left=off, right=stop, label=0),
-
-            MachineRelation(left=left, right=stop, label=1),
-            MachineRelation(left=right, right=stop, label=1),
-            MachineRelation(left=up, right=stop, label=1),
-            MachineRelation(left=down, right=stop, label=1),
-            MachineRelation(left=on, right=stop, label=1),
-            MachineRelation(left=off, right=stop, label=1),
-        ), )
-    )
-
-    root = RootMachine(machine_to_invoke=LoopInvokerMachine(machine_to_invoke=simple_machine))
-    num_episodes = 1500
-    for i_episode in range(num_episodes):
-        env.reset()
-        root.run(params)
-        if i_episode % 10 == 0:
-            print("\r{root} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
-            sys.stdout.flush()
-    plotting.plot_multi_test(smoothing_window=30,
-                             x_label="episode",
-                             y_label="smoothed rewards",
-                             curve_to_draw=[params.logs["ep_rewards"]
-                                            ],
-                             labels=["HAM_basic"]
-                             )
-
-
-if __name__ == "__main__":
-    main()

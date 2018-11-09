@@ -3,7 +3,7 @@ from collections import namedtuple
 # from matplotlib import pyplot as plt
 import matplotlib
 
-matplotlib.use('agg')
+# matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 EpisodeStats = namedtuple("Stats", ["episode_lengths", "episode_rewards"])
@@ -46,5 +46,5 @@ def plot_multi_test(curve_to_draw=None, smoothing_window=10, x_label="X", y_labe
     plt.xlabel(x_label)
     plt.ylabel(y_label)
 
-    plt.savefig("diagram.png" if filename is None else filename + ".png")
-    plt.show(fig2)
+    # plt.savefig("diagram.png" if filename is None else filename + ".png")
+    plt.show()
