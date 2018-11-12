@@ -236,7 +236,6 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
 
         sc.fit(np.vstack((df[["x"]], df[["y"]])))
 
-
         df[["x", "y"]] = sc.transform(df[["x", "y"]])
         ag = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity)
         clustered = list(ag.fit_predict(X))
@@ -328,5 +327,9 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
     return to_plot, q_table
 
 
-q_s, q_t = q_learning(TwoRooms(), 500)
-# plot_multi_test([q_s, ])
+def main():
+    q_s, q_t = q_learning(TwoRooms(), 500)
+
+
+if __name__ == '__main__':
+    main()
