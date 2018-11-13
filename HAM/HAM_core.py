@@ -99,7 +99,7 @@ class AbstractMachine:
         self.previous_choice_state = None
         self.accumulated_discount = 1
         self.accumulated_rewards = 0
-
+        self.V = defaultdict(lambda: None)
         # set unique id for AbstractMachine object
         self.id, AbstractMachine.free_id = AbstractMachine.free_id, AbstractMachine.free_id + 1
 
@@ -381,6 +381,7 @@ class Stop(MachineVertex):
         pass
 
 
+
 class Choice(MachineVertex):
     def __init__(self):
         super().__init__()
@@ -404,7 +405,7 @@ class Choice(MachineVertex):
             v = own_machine.params.q_value[combined_state][
                 self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
             delta = own_machine.params.alpha * (
-                        own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
+                    own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
             q += delta
             own_machine.params.q_value[own_machine.params.previous_machine_choice_state][
                 own_machine.params.previous_machine_choice] = q
@@ -418,6 +419,46 @@ class Choice(MachineVertex):
 
         return own_machine.graph.choice_relations[self][action].right
 
+
+class ChoiceSimple(Choice):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def get_e_greedy(q_choices: dict, eps: float):
+        if random.random() < eps:
+            return random.choice(list(q_choices.keys()))
+        else:
+            return max(q_choices.items(), key=operator.itemgetter(1))[0]
+
+    def run(self, own_machine: AbstractMachine):
+        combined_state = own_machine.id, self.id, own_machine.params.env.get_current_state()
+
+        if combined_state not in own_machine.params.q_value:
+            own_machine.params.q_value[combined_state] = {_: 0 for _ in own_machine.graph.choice_relations[self].keys()}
+
+        if own_machine.params.previous_machine_choice_state is not None:
+            q = own_machine.params.q_value[own_machine.params.previous_machine_choice_state][
+                own_machine.params.previous_machine_choice]
+
+
+            v = own_machine.params.q_value[combined_state][
+                self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
+            own_machine.V[own_machine.params.env.get_current_state()] = (*own_machine.params.env.decode(own_machine.params.env.get_current_state()), v)
+            delta = own_machine.params.alpha * (
+                    own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
+            q += delta
+            own_machine.params.q_value[own_machine.params.previous_machine_choice_state][
+                own_machine.params.previous_machine_choice] = q
+
+        action = self.get_e_greedy(own_machine.params.q_value[combined_state], eps=own_machine.params.eps)
+        own_machine.params.previous_machine_choice_state = combined_state
+        own_machine.params.previous_machine_choice = action
+
+        own_machine.params.accumulated_rewards = 0
+        own_machine.params.accumulated_discount = 1
+
+        return own_machine.graph.choice_relations[self][action].right
 
 class Call(MachineVertex):
     def __init__(self, machine_to_call: AbstractMachine):
@@ -445,10 +486,26 @@ class Action(MachineVertex):
     def run(self, own_machine: AbstractMachine):
         if self.action is not None:
             state, reward, done, _ = own_machine.params.env.step(self.action)
-            own_machine.params.logs["reward"] += reward
-            if done:
-                own_machine.params.logs["ep_rewards"].append(own_machine.params.logs["reward"])
-                own_machine.params.logs["reward"] = 0
+            # own_machine.params.env.render()
+            own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
+            own_machine.params.accumulated_discount *= own_machine.params.gamma
+            own_machine.params.eps *= 0.9999
+            # if "gif" not in own_machine.params.logs:
+            #     own_machine.params.logs["gif"] = [[]]
+            # if done:
+            #     own_machine.params.logs["gif"].append([])
+            # own_machine.params.logs["gif"][-1].append(own_machine.params.env.get_grid())
+        # return next vertex
+        return own_machine.graph.action_vertex_label_mapping[self][own_machine.get_on_model_transition_id()].right
+
+
+class ActionSimple(Action):
+    def __str__(self):
+        return super(ActionSimple, self).__str__() + "(" + str(self.action) + ")"
+
+    def run(self, own_machine: AbstractMachine, reward):
+        if self.action is not None:
+            # state, reward, done, _ = own_machine.params.env.step(self.action)
             # own_machine.params.env.render()
             own_machine.params.accumulated_rewards += reward * own_machine.params.accumulated_discount
             own_machine.params.accumulated_discount *= own_machine.params.gamma
@@ -486,4 +543,3 @@ class MachineRelation:
 
     def __str__(self):
         return str(self.left) + " -> " + str(self.right)
-

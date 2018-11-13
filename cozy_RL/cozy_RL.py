@@ -2,12 +2,16 @@ from collections import defaultdict
 from time import sleep
 
 import numpy as np
+import pandas as pd
 from gym.core import Env
 import matplotlib.pyplot as plt
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 import seaborn as sns
 
-from subgoals_discovery.two_rooms_env import TwoRooms
+from HAM.HAM_utils import HAMParamsCommon
+from subgoals_discovery.two_rooms_env import TwoRooms, AutoMachineSimple
 
 
 class CozyRL:
@@ -18,7 +22,6 @@ class CozyRL:
         self.number_of_episodes = number_of_episodes
 
     def run(self):
-
         info = {}
         # pre learning
         for listener in self.agents + self.supplementary:
@@ -32,22 +35,28 @@ class CozyRL:
                 listener.pre_agent_learning(info)
 
             for episode in tqdm(range(self.number_of_episodes), bar_format=bar_format, desc=desc, ncols=30):
+                info['episode'] = episode
+
+
+                ps = self.environment.reset()
+                info["cs"] = info["ps"] = ps
                 # pre episode
                 for listener in self.supplementary + [agent]:
                     listener.pre_episode(info)
 
-                ps = self.environment.reset()
                 done = False
                 while not done:
-
+                    info["cs"] = ps
+                    info["env"] = self.environment
+                    info["ps"] = ps
                     # pre action
                     for listener in self.supplementary + [agent]:
                         listener.pre_action(info)
 
-                    action = agent.make_action(ps, self.environment)
+                    action = agent.make_action(info)
 
                     cs, reward, done, listener = self.environment.step(action)
-                    info = {"ps": ps, "cs": cs, "r": reward, "a": action, "env": self.environment}
+                    info.update({"ps": ps, "cs": cs, "r": reward, "a": action, "env": self.environment})
                     ps = cs
                     # post action
                     for listener in self.supplementary + [agent]:
@@ -179,8 +188,10 @@ class Q_Agent(Agent):
         self.eps = self.eps * 0.99
         self.alpha = self.alpha * 0.999
 
-    def make_action(self, current_state, env):
-        cs = current_state
+    def make_action(self, info):
+
+        cs = info["cs"]
+        env = info["env"]
         if np.random.rand(1) < self.eps:
             action = np.random.choice(env.action_space.n, size=1)[0]
         else:
@@ -207,16 +218,21 @@ class Q_Agent(Agent):
         return result_action
 
 
-def main():
-    cozy = CozyRL(environment=TwoRooms(), agents=[
-        Q_Agent(env=TwoRooms(), name="Q-1", eps=0.5),
-        Q_Agent(env=TwoRooms(), name="Q-2", eps=0.6),
-        Q_Agent(env=TwoRooms(), name="Q-3", eps=0.7),
-    ],
-                  supplementary=[RewardChartDrawer(smooth_step=10)],
-                  number_of_episodes=500)
-    cozy.run()
+class StandardHAM(Agent):
+    def __init__(self, env, name):
+        self.machine = AutoMachineSimple(env)
+        self.params = HAMParamsCommon(env)
+        self.name = name
+
+    def make_action(self, info):
+        action = self.machine.run(self.params)
+        return action
+
+    def post_action(self, info):
+        # if info["r"] > 0.5:
+        #     print(info["r"])
+        self.machine.update_after_action(info["r"])
 
 
-if __name__ == '__main__':
-    main()
+
+

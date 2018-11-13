@@ -9,15 +9,15 @@ from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
 
 from HAM.HAM_core import AbstractMachine, Start, Choice, Action, Stop, \
-    MachineRelation, MachineGraph
+    MachineRelation, MachineGraph, HAMParams, ActionSimple, ChoiceSimple
 from HAM.HAM_utils import HAMParamsCommon, PlotParams, plot_multi
 
 
 class AutoMachineSimple(AbstractMachine):
     def __init__(self, env):
         start = Start()
-        choice_one = Choice()
-        actions = [Action(action=_) for _ in env.get_actions_as_dict().values()]
+        choice_one = ChoiceSimple()
+        actions = [ActionSimple(action=_) for _ in env.get_actions_as_dict().values()]
         stop = Stop()
 
         transitions = [MachineRelation(left=start, right=choice_one), ]
@@ -26,7 +26,38 @@ class AutoMachineSimple(AbstractMachine):
             transitions.append(MachineRelation(left=action, right=stop, label=0))
             transitions.append(MachineRelation(left=action, right=stop, label=1))
 
+        self.last_action_vertex = None
         super().__init__(graph=MachineGraph(transitions=transitions))
+
+    def run(self, params: HAMParams):
+        t = filter(lambda x: isinstance(x.left, Start), self.graph.transitions)
+        try:
+            current_vertex = t.__next__().left
+        except StopIteration:
+            raise Exception("No start vertex in graph")
+        try:
+            t.__next__()
+            raise Exception("More than one start vertex in graph")
+        except StopIteration:
+            pass
+
+        self.params = params
+        # shortcut lambda for on_model function
+        self.get_on_model_transition_id = lambda: self.params.on_model_transition_id_function(self.params.env)
+        while not isinstance(current_vertex, Stop):
+            if isinstance(current_vertex, ActionSimple) and current_vertex.action is not None:
+                self.last_action_vertex = current_vertex
+                # current_vertex = current_vertex.run(self)
+
+                return current_vertex.action
+            current_vertex = current_vertex.run(self)
+
+    def update_after_action(self, reward):
+        if self.last_action_vertex is None:
+            raise KeyError
+        current_vertex = self.last_action_vertex.run(self, reward)
+        while not isinstance(current_vertex, Stop):
+            current_vertex = current_vertex.run()
 
 
 def arg_max_action(q_dict, state, action_space):
@@ -88,7 +119,7 @@ class TwoRooms(discrete.DiscreteEnv):
         self.mark = []
 
         # building 2-rooms maze
-        self._maze = np.full(shape=(12, 16), fill_value=co.FREE_CELL).astype(np.int32)
+        self._maze = np.full(shape=(6, 8), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
         self._maze[0, :] = self._maze[:, 0] = co.OBSTACLE
         self._maze[self._maze.shape[0] - 1, :] = co.OBSTACLE
@@ -218,7 +249,8 @@ def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
             s = next_s
         to_plot.append(ep_reward)
     sleep(0.1)
-
+    print(V)
+    exit(0)
     def get_clusters(V, n_clusters, affinity):
         states = sorted(V.keys())
         ss = {"state": states}

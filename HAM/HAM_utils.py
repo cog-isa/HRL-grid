@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import sys
 
-from HAM.HAM_core import HAMParams, RandomMachine, LoopInvokerMachine, RootMachine, Start, Choice, Action, Stop, Call, \
+from HAM.HAM_core import HAMParams, LoopInvokerMachine, RootMachine, Start, Choice, Action, Stop, Call, \
     MachineRelation, MachineGraph, AbstractMachine
 from utils import plotting
 from utils.graph_drawer import draw_graph
