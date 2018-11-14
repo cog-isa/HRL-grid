@@ -99,7 +99,7 @@ class AbstractMachine:
         self.previous_choice_state = None
         self.accumulated_discount = 1
         self.accumulated_rewards = 0
-        self.V = defaultdict(lambda: None)
+        self.V = defaultdict(lambda: 0)
         # set unique id for AbstractMachine object
         self.id, AbstractMachine.free_id = AbstractMachine.free_id, AbstractMachine.free_id + 1
 
@@ -445,6 +445,7 @@ class ChoiceSimple(Choice):
             v = own_machine.params.q_value[combined_state][
                 self.get_e_greedy(own_machine.params.q_value[combined_state], eps=0)]
             own_machine.V[own_machine.params.env.get_current_state()] = (*own_machine.params.env.decode(own_machine.params.env.get_current_state()), v)
+
             delta = own_machine.params.alpha * (
                     own_machine.params.accumulated_rewards + own_machine.params.accumulated_discount * v - q)
             q += delta

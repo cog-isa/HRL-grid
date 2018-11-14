@@ -9,6 +9,7 @@ from cozy_RL.cozy_RL import CozyRL, Q_Agent, RewardChartDrawer, Agent
 from subgoals_discovery.two_rooms_env import TwoRooms, AutoMachineSimple
 import numpy as np
 
+
 class SubGoalDiscovery(Agent):
     def __init__(self, env, name):
         self.machine = AutoMachineSimple(env)
@@ -19,7 +20,7 @@ class SubGoalDiscovery(Agent):
         self.bn_added = None
 
     def pre_episode(self, info):
-        self.bn_added = {info['ps']:1}
+        self.bn_added = {info['ps']: 1}
 
     def make_action(self, info):
         action = self.machine.run(self.params)
@@ -32,6 +33,7 @@ class SubGoalDiscovery(Agent):
 
     def post_episode(self, info):
         # TODO run if it was only successful episode
+        self.bn_added[info["cs"]] = 1
         for state in self.bn_added:
             if self.bn_added[state] is not None:
                 self.bns_count[state] += 1
@@ -40,6 +42,9 @@ class SubGoalDiscovery(Agent):
             bns_count = self.bns_count
             self.bns_count = defaultdict(lambda: 0)
             V = self.machine.V
+            for i in bns_count:
+                if i not in V:
+                    V[i] = (*info["env"].decode(i), 0)
             env = info["env"]
 
             def get_clusters(V, n_clusters, affinity):
@@ -74,8 +79,10 @@ class SubGoalDiscovery(Agent):
             def get_bns_in_increasing_order(bns_count):
                 state_count_pairs = sorted([(bns_count[_], _) for _ in bns_count], reverse=True)
                 return list(map(lambda x: x[1], state_count_pairs, ))
-            map_state_to_cluster[518] = 0
-            print("x, y:", env.decode(518))
+
+            # map_state_to_cluster[518] = 0
+            # env.render()
+            # print("x, y:", env.decode(518))
             def get_mapping_for_cluster_to_sorted_bns(sorted_bns, map_state_to_cluster):
                 res = defaultdict(lambda: list())
                 for state in sorted_bns:
@@ -94,15 +101,15 @@ class SubGoalDiscovery(Agent):
 
             class colors:
                 HEADER = '\033[95m'
-                OKBLUE = '\033[94m'
-                OKGREEN = '\033[92m'
+                BLUE = '\033[94m'
+                GREEN = '\033[92m'
                 WARNING = '\033[93m'
                 FAIL = '\033[91m'
                 ENDC = '\033[0m'
                 BOLD = '\033[1m'
                 UNDERLINE = '\033[4m'
 
-                COLOR_LIST = [HEADER, OKBLUE, OKGREEN, WARNING, FAIL]
+                COLOR_LIST = [HEADER, BLUE, GREEN, WARNING, FAIL]
 
             # draw best bns for clusters
             BNS_FOR_CLUSTER = 5
@@ -124,7 +131,7 @@ def main():
 
     ],
                   supplementary=[RewardChartDrawer(smooth_step=10)],
-                  number_of_episodes=2000)
+                  number_of_episodes=2222)
     cozy.run()
 
 

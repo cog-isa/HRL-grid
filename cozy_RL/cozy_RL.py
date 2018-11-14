@@ -37,7 +37,7 @@ class CozyRL:
             for episode in tqdm(range(self.number_of_episodes), bar_format=bar_format, desc=desc, ncols=30):
                 info['episode'] = episode
 
-
+                cs = None
                 ps = self.environment.reset()
                 info["cs"] = info["ps"] = ps
                 # pre episode
@@ -61,6 +61,7 @@ class CozyRL:
                     # post action
                     for listener in self.supplementary + [agent]:
                         listener.post_action(info)
+                info["cs"] = cs
                 # post episode
                 for listener in self.supplementary + [agent]:
                     listener.post_episode(info)
