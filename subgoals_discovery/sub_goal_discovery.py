@@ -3,6 +3,7 @@ from collections import defaultdict
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import MinMaxScaler
+from tqdm import tqdm
 
 from HAM.HAM_utils import HAMParamsCommon
 from cozy_RL.cozy_RL import CozyRL, Q_Agent, RewardChartDrawer, Agent
@@ -11,6 +12,14 @@ import numpy as np
 
 
 class SubGoalDiscovery(Agent):
+    class BnsMachine:
+        def __init__(self, params, cluster_index, list_of_bns, states_in_my_cluster, env):
+            self.machine = AutoMachineSimple(env)
+            self.cluster_index = cluster_index
+            self.bns = set(list_of_bns)
+            self.states_in_my_cluster = states_in_my_cluster
+            self.params = params
+
     def __init__(self, env, name):
         self.machine = AutoMachineSimple(env)
         self.params = HAMParamsCommon(env)
@@ -19,26 +28,49 @@ class SubGoalDiscovery(Agent):
         self.bns_count = defaultdict(lambda: 0)
         self.bn_added = None
 
+        self.hams = None
+        self.current_ham = None
+        self.current_ham_bn_reached = None
+
     def pre_episode(self, info):
         self.bn_added = {info['ps']: 1}
 
     def make_action(self, info):
-        action = self.machine.run(self.params)
-        return action
+        if self.hams is None:
+            action = self.machine.run(self.params)
+            return action
+        else:
+            select_ham = None
+            for ham in self.hams:
+                if info["cs"] in ham.states_in_my_cluster:
+                    select_ham = ham
+
+            if self.current_ham is None:
+                self.current_ham = select_ham
+                self.current_ham_bn_reached = False
+            if info["cs"] not in self.current_ham.states_in_my_cluster and self.current_ham_bn_reached:
+                self.current_ham_bn_reached = select_ham
+            if info["cs"] in self.current_ham.bns:
+                self.current_ham_bn_reached = True
+            return self.current_ham.machine.run(self.current_ham.params)
 
     def post_action(self, info):
         cs = info["cs"]
         self.bn_added[cs] = 1
-        self.machine.update_after_action(info["r"])
+
+        if self.hams is None:
+            self.machine.update_after_action(info["r"])
+        else:
+            self.current_ham.machine.update_after_action(info["r"])
 
     def post_episode(self, info):
-        # TODO run if it was only successful episode
+        # TODO add if it was only successful episode
         self.bn_added[info["cs"]] = 1
         for state in self.bn_added:
             if self.bn_added[state] is not None:
                 self.bns_count[state] += 1
-
-        if (info["episode"] + 1) % 1000 == 0:
+        sub_goal_episodes = 1000
+        if (info["episode"] + 1) % sub_goal_episodes == 0:
             bns_count = self.bns_count
             self.bns_count = defaultdict(lambda: 0)
             V = self.machine.V
@@ -112,26 +144,53 @@ class SubGoalDiscovery(Agent):
                 COLOR_LIST = [HEADER, BLUE, GREEN, WARNING, FAIL]
 
             # draw best bns for clusters
-            BNS_FOR_CLUSTER = 5
+            BNS_FOR_CLUSTER = 2
             for q in map_cluster_to_sorted_bns:
                 for j in map_cluster_to_sorted_bns[q][:BNS_FOR_CLUSTER]:
                     env.mark[j] = colors.COLOR_LIST[q % len(colors.COLOR_LIST)] + str(q) + colors.ENDC
             env.render()
             env.mark = {}
+            hams = [self.BnsMachine(params=HAMParamsCommon(env=env),
+                                    cluster_index=_,
+                                    list_of_bns=map_cluster_to_sorted_bns[_][:BNS_FOR_CLUSTER],
+                                    states_in_my_cluster=set(map_cluster_to_sorted_bns[_]), env=env
+                                    ) for _ in map_cluster_to_sorted_bns]
+
+            # TODO REWRITE WITH REPLAY BUFFER!!!
+            for _ in range(1, sub_goal_episodes * 5 + 1):
+                env.reset()
+                while not env.is_done():
+                    for ham in hams:
+                        if env.s in ham.states_in_my_cluster:
+
+                            # TODO mb check for my cluster
+                            while not env.is_done() and env.s not in ham.bns:
+                                # and env.s in ham.states_in_my_cluster:
+                                action = ham.machine.run(ham.params)
+                                next_s, reward, done, _ = env.step(action)
+                                self.machine.update_after_action(reward)
+                            # if env.s not in ham.states_in_my_cluster:
+                            #     continue
+                            while not env.is_done() and env.s in ham.states_in_my_cluster:
+                                action = ham.machine.run(ham.params)
+                                next_s, reward, done, _ = env.step(action)
+                                self.machine.update_after_action(reward)
+            self.hams = hams
+            self.current_ham = None
 
 
 def main():
     env = TwoRooms()
     cozy = CozyRL(environment=env, agents=[
-        SubGoalDiscovery(env=env, name="subgoal discovery"),
-        Q_Agent(env, name="Q-1", eps=0.5),
+        SubGoalDiscovery(env=env, name="Sub-goal discovery"),
+        Q_Agent(env, name="Q-learning", eps=0.5),
         # Q_Agent(env=TwoRooms(), name="Q-2", eps=0.6),
         # Q_Agent(env=TwoRooms(), name="Q-3", eps=0.7),
         # StandardHAM(env=env, name="stHAM"),
 
     ],
                   supplementary=[RewardChartDrawer(smooth_step=10)],
-                  number_of_episodes=2222)
+                  number_of_episodes=2500)
     cozy.run()
 
 
