@@ -1,16 +1,10 @@
-from time import sleep
-import pandas as pd
 import numpy as np
-from collections import namedtuple, defaultdict
-from sklearn.preprocessing import MinMaxScaler
+from collections import namedtuple
 import sys
 from gym.envs.toy_text import discrete
-from sklearn.cluster import AgglomerativeClustering
-from tqdm import tqdm
 
-from HAM.HAM_core import AbstractMachine, Start, Choice, Action, Stop, \
+from HAM.HAM_core import AbstractMachine, Start, Stop, \
     MachineRelation, MachineGraph, HAMParams, ActionSimple, ChoiceSimple
-from HAM.HAM_utils import HAMParamsCommon, PlotParams, plot_multi
 
 
 class AutoMachineSimple(AbstractMachine):
@@ -103,8 +97,8 @@ class TwoRooms(discrete.DiscreteEnv):
 
     def __init__(self):
 
-        finish_reward = 1
-
+        finish_reward = 5
+        dangerous_state_reward = -5
         co = self.CONSTANTS
 
         self.code_middle = 2 ** 7
@@ -119,7 +113,7 @@ class TwoRooms(discrete.DiscreteEnv):
         self.mark = []
 
         # building 2-rooms maze
-        self._maze = np.full(shape=(6, 8), fill_value=co.FREE_CELL).astype(np.int32)
+        self._maze = np.full(shape=(12, 16), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
         self._maze[0, :] = self._maze[:, 0] = co.OBSTACLE
         self._maze[self._maze.shape[0] - 1, :] = co.OBSTACLE
@@ -137,9 +131,21 @@ class TwoRooms(discrete.DiscreteEnv):
 
         prob = {}
 
+        self.dangerous_state = {
+            self.encode(self._maze.shape[0] // 4, self._maze.shape[1] // 4),
+            self.encode(self._maze.shape[0] // 4 * 3, self._maze.shape[1] // 4),
+            self.encode(self._maze.shape[0] // 4, self._maze.shape[1] // 4 * 3),
+            self.encode(self._maze.shape[0] // 4 * 3, self._maze.shape[1] // 4 * 3),
+            # self.encode(8, self._maze.shape[1] // 4 * 3),
+            # self.encode(4, self._maze.shape[1] // 4),
+            # self.encode(8, self._maze.shape[1] // 4 * 3),
+            # self.encode(10, 12),
+        }
+
         def append_transitions_from_cell(a_x, a_y, p):
             state = self.encode(a_x, a_y)
             p[state] = {a: [] for a in range(len(self.ACTIONS))}
+            # print(a_x, a_y)
             for a in self.ACTIONS:
                 for a2 in self.ACTIONS:
                     dx, dy = action_mapping[a2]
@@ -151,6 +157,10 @@ class TwoRooms(discrete.DiscreteEnv):
                     done = self._maze[a_n_x, a_n_y] == co.TARGET
                     reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else -0.01
                     probability = 0.7 if a == a2 else 0.1
+                    if new_state in self.dangerous_state:
+                        reward = dangerous_state_reward
+                        done = True
+
                     p[state][a].append((probability, new_state, reward, done))
 
         for agent_x1 in range(self._maze.shape[0]):
@@ -195,7 +205,11 @@ class TwoRooms(discrete.DiscreteEnv):
         for i in range(maze_size_x):
             for j in range(maze_size_y):
                 output += " "
-                if self.encode(i, j) in self.mark:
+                if self.encode(i, j) in self.dangerous_state:
+                    output += "D"
+                elif self._maze[i][j] == 2:
+                    output += "F"
+                elif self.encode(i, j) in self.mark:
                     output += self.mark[self.encode(i, j)]
                 elif self.s == self.encode(i, j):
                     output += "x"
@@ -204,164 +218,9 @@ class TwoRooms(discrete.DiscreteEnv):
                         output += "."
                     if self._maze[i][j] == 1:
                         output += "H"
-                    if self._maze[i][j] == 2:
-                        output += "F"
+
                     if self._maze[i][j] == 3:
                         output += "F"
                 output += " "
             output += '\n'
         outfile.write(output)
-
-
-def q_learning(env, num_episodes, eps=0.1, alpha=0.1, gamma=0.9):
-    to_plot = []
-
-    q_table = defaultdict(lambda: 0)
-    bns_count = defaultdict(lambda: 0)
-    V = defaultdict(lambda: None)
-
-    for _ in tqdm(range(num_episodes)):
-        ep_reward = 0
-        eps *= 0.9
-        s = env.reset()
-
-        bn_added = {}
-        while True:
-            if np.random.rand(1) < eps:
-                action = np.random.choice(env.action_space.n, size=1)[0]
-            else:
-                action = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
-
-            next_s, reward, done, _ = env.step(action)
-            a = arg_max_action(q_dict=q_table, state=s, action_space=env.action_space.n)
-            # noinspection PyTypeChecker
-            V[s] = (*env.decode(s), q_table[s, a])
-            # making +1 to bn_counts once for each episode
-            if not bn_added.get(s, False):
-                bns_count[s] += 1
-                bn_added[s] = True
-            q_table[s, action] = (1 - alpha) * q_table[s, action] + alpha * (reward + gamma * q_table[next_s, a])
-
-            ep_reward += reward
-            if done:
-                break
-
-            s = next_s
-        to_plot.append(ep_reward)
-    sleep(0.1)
-    print(V)
-    exit(0)
-    def get_clusters(V, n_clusters, affinity):
-        states = sorted(V.keys())
-        ss = {"state": states}
-        # noinspection PyTypeChecker
-        for i in range(len(V[states[0]])):
-            ss[str(i)] = [V[_][i] for _ in states]
-        df = pd.DataFrame(ss).set_index("state")
-        sc = MinMaxScaler()
-        df = df.rename(index=str, columns={"0": "x", "1": "y", "2": 'V'})
-        X = df[["x", "y", "V"]]
-        X[["V"]] *= 0.5
-        # df[["x", "y"]] = df[["x", "y"]].apply(np.float)
-        df["x"] = df["x"].astype(np.float)
-        df["y"] = df["y"].astype(np.float)
-
-        sc.fit(np.vstack((df[["x"]], df[["y"]])))
-
-        df[["x", "y"]] = sc.transform(df[["x", "y"]])
-        ag = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity)
-        clustered = list(ag.fit_predict(X))
-        cluster_state_mapping = {}
-        for i in range(len(states)):
-            cluster_state_mapping[states[i]] = clustered[i]
-        return cluster_state_mapping
-
-    # all_states = V.keys()
-    n_clusters = 4
-    map_state_to_cluster = get_clusters(V=V, n_clusters=n_clusters, affinity="euclidean")
-
-    def get_bns_in_increasing_order(bns_count):
-        state_count_pairs = sorted([(bns_count[_], _) for _ in bns_count], reverse=True)
-        return list(map(lambda x: x[1], state_count_pairs, ))
-
-    def get_mapping_for_cluster_to_sorted_bns(sorted_bns, map_state_to_cluster):
-        res = defaultdict(lambda: list())
-        for state in sorted_bns:
-            res[map_state_to_cluster[state]].append(state)
-        return res
-
-    # bns = bottlenecks
-    sorted_bns = get_bns_in_increasing_order(bns_count=bns_count)
-    map_cluster_to_sorted_bns = get_mapping_for_cluster_to_sorted_bns(sorted_bns=sorted_bns,
-                                                                      map_state_to_cluster=map_state_to_cluster)
-
-    env.mark = {}
-
-    for current_state in map_state_to_cluster:
-        env.mark[current_state] = str(map_state_to_cluster[current_state])
-
-    class colors:
-        HEADER = '\033[95m'
-        OKBLUE = '\033[94m'
-        OKGREEN = '\033[92m'
-        WARNING = '\033[93m'
-        FAIL = '\033[91m'
-        ENDC = '\033[0m'
-        BOLD = '\033[1m'
-        UNDERLINE = '\033[4m'
-
-        COLOR_LIST = [HEADER, OKBLUE, OKGREEN, WARNING, FAIL]
-
-    # draw best bns for clusters
-    BNS_FOR_CLUSTER = 5
-    for q in map_cluster_to_sorted_bns:
-        for j in map_cluster_to_sorted_bns[q][:BNS_FOR_CLUSTER]:
-            env.mark[j] = colors.COLOR_LIST[q % len(colors.COLOR_LIST)] + str(q) + colors.ENDC
-    env.render()
-    env.mark = {}
-
-    def runner(hams, num_episodes, env):
-        for i_episode in range(1, num_episodes + 1):
-            env.reset()
-            while not env.is_done():
-                for ham in hams:
-                    if env.s in ham.states_in_my_cluster:
-                        while not env.is_done() and env.s not in ham.bns:
-                            ham.machine.run(params)
-                        while not env.is_done() and env.s in ham.states_in_my_cluster:
-                            ham.machine.run(params)
-
-            if i_episode % 10 == 0:
-                print("\r{ham} episode {i_episode}/{num_episodes}.".format(**locals()), end="")
-                sys.stdout.flush()
-
-    class BnsMachine:
-        def __init__(self, params, cluster_index, list_of_bns, states_in_my_cluster):
-            self.machine = AutoMachineSimple(env)
-            self.cluster_index = cluster_index
-            self.bns = set(list_of_bns)
-            self.states_in_my_cluster = states_in_my_cluster
-            self.params = params
-
-    params = HAMParamsCommon(env)
-    hams = [BnsMachine(params=params, cluster_index=_, list_of_bns=map_cluster_to_sorted_bns[_][:BNS_FOR_CLUSTER],
-                       states_in_my_cluster=set(map_cluster_to_sorted_bns[_])) for _ in
-            map_cluster_to_sorted_bns]
-
-    runner(hams=hams,
-           num_episodes=500,
-           env=env,
-           )
-    to_plot = list()
-    to_plot.append(PlotParams(curve_to_draw=params.logs["ep_rewards"], label="HAM_with_pull_up"))
-    plot_multi(to_plot)
-    # print(params.logs["ep_rewards"])
-    return to_plot, q_table
-
-
-def main():
-    q_s, q_t = q_learning(TwoRooms(), 500)
-
-
-if __name__ == '__main__':
-    main()

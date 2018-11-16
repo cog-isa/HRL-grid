@@ -34,7 +34,8 @@ class CozyRL:
             for listener in self.supplementary + [agent]:
                 listener.pre_agent_learning(info)
 
-            for episode in tqdm(range(self.number_of_episodes), bar_format=bar_format, desc=desc, ncols=30):
+            for episode in tqdm(range(self.number_of_episodes), bar_format=bar_format, desc=desc, position=0):
+            # for episode in range(self.number_of_episodes):
                 info['episode'] = episode
 
                 cs = None
@@ -167,7 +168,7 @@ class RewardChartDrawer(StatisticsListener):
             # color = sns.color_palette()[2]
             plt.plot(np.array(range(len(means))) * self.smooth_step, means, label=str(name))
 
-            plt.fill_between(np.array(range(len(means))) * self.smooth_step, means - lower, means + upper, alpha=0.2)
+            plt.fill_between(np.array(range(len(means))) * self.smooth_step, means - lower, means + upper, alpha=0.15)
             plt.legend()
         plt.show()
 
