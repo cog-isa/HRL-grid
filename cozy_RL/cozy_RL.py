@@ -146,6 +146,7 @@ class RewardChartDrawer(StatisticsListener):
         plt.title("Statistics")
         plt.xlabel("Episode")
         plt.ylabel("Reward")
+        # plt.ylim(bottom=-20)
         for agent in self.agents_statistics:
             name = agent.name
             x = agent.rewards
@@ -187,8 +188,8 @@ class Q_Agent(Agent):
         self.name = name
 
     def pre_episode(self, info):
-        self.eps = self.eps * 0.99
-        self.alpha = self.alpha * 0.999
+        self.eps = self.eps * 0.999
+        # self.alpha = self.alpha * 0.99999
 
     def make_action(self, info):
 

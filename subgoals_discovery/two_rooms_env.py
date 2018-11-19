@@ -97,7 +97,7 @@ class TwoRooms(discrete.DiscreteEnv):
 
     def __init__(self):
 
-        finish_reward = 5
+        finish_reward = 20
         dangerous_state_reward = -5
         co = self.CONSTANTS
 
@@ -113,18 +113,24 @@ class TwoRooms(discrete.DiscreteEnv):
         self.mark = []
 
         # building 2-rooms maze
-        self._maze = np.full(shape=(12, 16), fill_value=co.FREE_CELL).astype(np.int32)
+        self._maze = np.full(shape=(19, 18), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
+
         self._maze[0, :] = self._maze[:, 0] = co.OBSTACLE
         self._maze[self._maze.shape[0] - 1, :] = co.OBSTACLE
         self._maze[:, self._maze.shape[1] - 1] = co.OBSTACLE
 
         # separate rooms
         self._maze[:, self._maze.shape[1] // 2] = co.OBSTACLE
+        self._maze[self._maze.shape[0] // 2, :] = co.OBSTACLE
 
+        self._maze[self._maze.shape[0] // 2, self._maze.shape[1] // 4] = co.FREE_CELL
+        self._maze[self._maze.shape[0] // 2, self._maze.shape[1] // 4 * 3] = co.FREE_CELL
+        self._maze[self._maze.shape[0] // 4, self._maze.shape[1] // 2] = co.FREE_CELL
+        # self._maze[self._maze.shape[0] // 4 * 3, self._maze.shape[1] // 2] = co.FREE_CELL
         # clear obstacles for door
-        self._maze[self._maze.shape[0] // 2, self._maze.shape[1] // 2] = 0
-        self._maze[self._maze.shape[0] // 2 - 1, self._maze.shape[1] // 2] = 0
+        # self._maze[self._maze.shape[0] // 2, self._maze.shape[1] // 2] = 0
+        # self._maze[self._maze.shape[0] // 2 - 1, self._maze.shape[1] // 2] = 0
 
         # placing target at the lower right corner of the right hand room
         self._maze[self._maze.shape[0] - 2, self._maze.shape[1] - 2] = co.TARGET
@@ -133,9 +139,10 @@ class TwoRooms(discrete.DiscreteEnv):
 
         self.dangerous_state = {
             self.encode(self._maze.shape[0] // 4, self._maze.shape[1] // 4),
-            self.encode(self._maze.shape[0] // 4 * 3, self._maze.shape[1] // 4),
-            self.encode(self._maze.shape[0] // 4, self._maze.shape[1] // 4 * 3),
-            self.encode(self._maze.shape[0] // 4 * 3, self._maze.shape[1] // 4 * 3),
+            self.encode(self._maze.shape[0] // 4 * 3+1, self._maze.shape[1] // 4),
+            self.encode(self._maze.shape[0] // 4, (self._maze.shape[1] + 1) // 4 * 3),
+            self.encode(self._maze.shape[0] // 4 * 3+1, self._maze.shape[1] // 4 * 3),
+
             # self.encode(8, self._maze.shape[1] // 4 * 3),
             # self.encode(4, self._maze.shape[1] // 4),
             # self.encode(8, self._maze.shape[1] // 4 * 3),
@@ -157,6 +164,7 @@ class TwoRooms(discrete.DiscreteEnv):
                     done = self._maze[a_n_x, a_n_y] == co.TARGET
                     reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else -0.01
                     probability = 0.7 if a == a2 else 0.1
+                    # probability = 1.0 if a == a2 else 0.0
                     if new_state in self.dangerous_state:
                         reward = dangerous_state_reward
                         done = True
@@ -170,12 +178,15 @@ class TwoRooms(discrete.DiscreteEnv):
                 append_transitions_from_cell(agent_x1, agent_y1, prob)
 
         isd = []
-        for x in range(1, self._maze.shape[0] - 1):
+        isd.append(self.encode(self._maze.shape[0] // 2 + 1, 2))
+        for x in range(self._maze.shape[0] // 2 + 1, self._maze.shape[0] - 1):
             for y in range(1, self._maze.shape[1] // 2):
                 isd.append(self.encode(x, y))
         isd = np.array(isd)
         super(TwoRooms, self).__init__(self.encode(self._maze.shape[0] - 1, self._maze.shape[1] - 1), len(self.ACTIONS),
                                        prob, isd)
+        self.render()
+        # exit(0)
 
     def _reset(self):
         self.done = False
