@@ -97,8 +97,9 @@ class TwoRooms(discrete.DiscreteEnv):
 
     def __init__(self):
 
-        finish_reward = 20
-        dangerous_state_reward = -5
+        finish_reward = 100
+        dangerous_state_reward = -20
+        minus_reward = -0.1
         co = self.CONSTANTS
 
         self.code_middle = 2 ** 7
@@ -113,7 +114,7 @@ class TwoRooms(discrete.DiscreteEnv):
         self.mark = []
 
         # building 2-rooms maze
-        self._maze = np.full(shape=(19, 18), fill_value=co.FREE_CELL).astype(np.int32)
+        self._maze = np.full(shape=(30, 30), fill_value=co.FREE_CELL).astype(np.int32)
         # feel boundaries of room with obstacles
 
         self._maze[0, :] = self._maze[:, 0] = co.OBSTACLE
@@ -162,8 +163,8 @@ class TwoRooms(discrete.DiscreteEnv):
                     else:
                         new_state = self.encode(a_n_x, a_n_y)
                     done = self._maze[a_n_x, a_n_y] == co.TARGET
-                    reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else -0.01
-                    probability = 0.7 if a == a2 else 0.1
+                    reward = finish_reward if self._maze[a_n_x, a_n_y] == co.TARGET else minus_reward
+                    probability = 0.91 if a == a2 else 0.03
                     # probability = 1.0 if a == a2 else 0.0
                     if new_state in self.dangerous_state:
                         reward = dangerous_state_reward
@@ -181,12 +182,11 @@ class TwoRooms(discrete.DiscreteEnv):
         isd.append(self.encode(self._maze.shape[0] // 2 + 1, 2))
         for x in range(self._maze.shape[0] // 2 + 1, self._maze.shape[0] - 1):
             for y in range(1, self._maze.shape[1] // 2):
-                isd.append(self.encode(x, y))
+                if self.encode(x, y) not in self.dangerous_state:
+                    isd.append(self.encode(x, y))
         isd = np.array(isd)
         super(TwoRooms, self).__init__(self.encode(self._maze.shape[0] - 1, self._maze.shape[1] - 1), len(self.ACTIONS),
                                        prob, isd)
-        self.render()
-        # exit(0)
 
     def _reset(self):
         self.done = False
